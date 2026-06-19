@@ -5,32 +5,30 @@ import { motion } from 'framer-motion';
 import { CloudArrowUpIn, Lock, Plus, Xmark } from '@gravity-ui/icons';
 import toast, { Toaster } from 'react-hot-toast';
 import { useSession } from '@/lib/auth-client';
-// আপনার auth লাইব্রেরি অনুযায়ী useSession ইমপোর্ট করুন
-// import { useSession } from 'next-auth/react';
 
 export default function AddLessonPage() {
-  // 🔐 সেশন থেকে রিয়েল ডেটা নেওয়া হচ্ছে
+  // 🔐 Retrieve real session details
   const { data: session, status } = useSession();
 
-  // ফর্মে ব্যবহৃত স্টেটসমূহ
+  // Core form states (Initialized with empty strings to force user selection)
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('Philosophy');
-  const [emotionalTone, setEmotionalTone] = useState('Contemplative');
+  const [category, setCategory] = useState('');
+  const [emotionalTone, setEmotionalTone] = useState('');
   const [accessLevel, setAccessLevel] = useState('Free');
   const [description, setDescription] = useState('');
 
-  // ট্যাগস স্টেট
+  // Tags workflow state configurations
   const [tags, setTags] = useState(['Stoicism', 'Digital Minimalism', 'Focus']);
   const [newTag, setNewTag] = useState('');
   const [showTagInput, setShowTagInput] = useState(false);
 
-  // ইমেজ এবং পাবলিশিং স্টেট
+  // Asset pipelines & visual states
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
   const fileInputRef = useRef(null);
 
-  // সেশন লোড হওয়া পর্যন্ত ওয়েট করা
+  // Monitor loading sequence authentication loop
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-[#0F0D0A] flex items-center justify-center font-mono text-[#E5A93C]">
@@ -39,7 +37,7 @@ export default function AddLessonPage() {
     );
   }
 
-  // যদি ইউজার লগইন না থাকে
+  // Restrict access for unauthenticated entry requests
   if (status === 'unauthenticated' || !session?.user) {
     return (
       <div className="min-h-screen bg-[#0F0D0A] flex items-center justify-center p-6">
@@ -53,7 +51,6 @@ export default function AddLessonPage() {
     );
   }
 
-  // ডাটাবেজ স্ট্রাকচার অনুযায়ী রিয়েল ইউজার অবজেক্ট
   const user = session.user;
 
   const handleFileChange = e => {
@@ -101,23 +98,19 @@ export default function AddLessonPage() {
   };
 
   const handleSubmit = async e => {
-    e.preventDefault();
-    if (!title || !description) {
-      toast.error('Please fill in all required core attributes.');
-      return;
-    }
+    e.preventDefault(); // This triggers only when HTML5 built-in validation passes
 
     setIsPublishing(true);
     const processToast = toast.loading('Initiating publication sequence...');
 
     try {
       let finalImageUrl = '';
+      // Image field is now fully optional. Triggers upload only if file is selected
       if (selectedFile) {
         toast.loading('Uploading asset to ImgBB...', { id: processToast });
         finalImageUrl = await uploadImageToImgBB();
       }
 
-      // 🎯 আপনার ডাটাবেজ স্ট্রাকচারের সাথে ইউজারকে সম্পূর্ণ ম্যাপ করা হয়েছে
       const lessonData = {
         title,
         category,
@@ -125,15 +118,14 @@ export default function AddLessonPage() {
         accessLevel: user.isPremium ? accessLevel : 'Free',
         description,
         tags,
-        image: finalImageUrl,
+        image: finalImageUrl, // Will be empty string "" if no image is given
         visibility: 'Public',
         createdAt: new Date(),
-        // 🔐 আপনার স্ক্রিনশটের অবজেক্ট স্ট্রাকচার অনুযায়ী ম্যাপিং
         author: {
-          userId: user.id || user.uid, // MongoDB ObjectId কে রিপ্রেজেন্ট করবে
+          userId: user.id || user.uid,
           name: user.name,
           email: user.email,
-          image: user.image, // গুগলের অবতার ইমেজ ইউআরএল
+          image: user.image,
         },
       };
 
@@ -151,6 +143,8 @@ export default function AddLessonPage() {
           id: processToast,
         });
         setTitle('');
+        setCategory('');
+        setEmotionalTone('');
         setDescription('');
         setSelectedFile(null);
         setPreviewUrl('');
@@ -213,34 +207,46 @@ export default function AddLessonPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Category Dropdown */}
                 <div className="flex flex-col gap-2">
                   <label className="text-[#9C9485] font-medium text-xs uppercase tracking-wider">
-                    Domain Category
+                    Category <span className="text-[#E5A93C]">*</span>
                   </label>
                   <select
+                    required
                     value={category}
                     onChange={e => setCategory(e.target.value)}
                     className="bg-[#1C1812] border border-[#2E281D] text-[#E6DFD3] text-sm p-3 outline-none cursor-pointer focus:border-[#E5A93C]"
                   >
-                    <option value="Philosophy">Philosophy</option>
+                    <option value="" disabled>
+                      Select Category
+                    </option>
                     <option value="Personal Growth">Personal Growth</option>
                     <option value="Career">Career</option>
+                    <option value="Relationships">Relationships</option>
                     <option value="Mindset">Mindset</option>
+                    <option value="Mistakes Learned">Mistakes Learned</option>
                   </select>
                 </div>
 
+                {/* Emotional Tone Dropdown */}
                 <div className="flex flex-col gap-2">
                   <label className="text-[#9C9485] font-medium text-xs uppercase tracking-wider">
-                    Narrative Tone
+                    Emotional Tone <span className="text-[#E5A93C]">*</span>
                   </label>
                   <select
+                    required
                     value={emotionalTone}
                     onChange={e => setEmotionalTone(e.target.value)}
                     className="bg-[#1C1812] border border-[#2E281D] text-[#E6DFD3] text-sm p-3 outline-none cursor-pointer focus:border-[#E5A93C]"
                   >
-                    <option value="Contemplative">Contemplative</option>
+                    <option value="" disabled>
+                      Select Emotional Tone
+                    </option>
                     <option value="Motivational">Motivational</option>
+                    <option value="Sad">Sad</option>
                     <option value="Realization">Realization</option>
+                    <option value="Gratitude">Gratitude</option>
                   </select>
                 </div>
               </div>
@@ -293,12 +299,12 @@ export default function AddLessonPage() {
 
               <div className="flex flex-col gap-2 pt-2">
                 <label className="text-[#9C9485] font-medium text-xs uppercase tracking-wider">
-                  Lesson Abstract <span className="text-[#E5A93C]">*</span>
+                  Lesson Description <span className="text-[#E5A93C]">*</span>
                 </label>
                 <textarea
                   required
                   rows={6}
-                  placeholder="Distill the essence of this lesson in 3-5 sentences..."
+                  placeholder="Describe Lessons Full Description / Story / Insight ..."
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   className="bg-[#1C1812] border border-[#2E281D] text-[#E6DFD3] placeholder:text-[#9C9485]/30 text-base p-4 outline-none hover:border-[#E5A93C]/30 focus:border-[#E5A93C] transition-colors resize-none leading-relaxed"
@@ -315,11 +321,11 @@ export default function AddLessonPage() {
                   Step 02
                 </p>
                 <h1 className="text-3xl font-serif text-[#E6DFD3] tracking-wide">
-                  Visual Identity
+                  Visual Identity (Optional)
                 </h1>
               </div>
 
-              {/* Upload Zone */}
+              {/* Upload Zone (No required attribute, fully optional) */}
               <div className="bg-[#14110C] border border-dashed border-[#2E281D] flex flex-col items-center justify-center p-6 shadow-2xl relative group min-h-[300px]">
                 <input
                   type="file"

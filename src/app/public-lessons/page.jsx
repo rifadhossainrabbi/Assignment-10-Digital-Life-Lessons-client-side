@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-// react-icons থেকে প্রয়োজনীয় আইকনগুলো ইমপোর্ট করা হলো
 import { FiSearch, FiLock, FiEye } from 'react-icons/fi';
 import Link from 'next/link';
 import { useSession } from '@/lib/auth-client';
@@ -11,7 +10,7 @@ export default function PublicLessonsPage() {
   const { data: session } = useSession();
   const currentUser = session?.user;
 
-  // State Management (Challenge 1: Search, Filter, Sort)
+  // State Management
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -19,69 +18,32 @@ export default function PublicLessonsPage() {
   const [tone, setTone] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
 
+  // Fetch real-time operational data from backend instead of dummy configurations
   useEffect(() => {
-    // ডামি ডেটা স্ট্রাকচার
-    const dummyLessons = [
-      {
-        _id: '1',
-        title: 'Mastering Stoicism in Chaos',
-        description:
-          "Learn why the straightest path isn't always the fastest one in high-stakes corporate environments or chaotic daily routines.",
-        category: 'Philosophy',
-        emotionalTone: 'Contemplative',
-        accessLevel: 'Premium',
-        createdAt: '2026-06-18T13:36:06.177+00:00',
-        image:
-          'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=800&q=80',
-        author: {
-          name: 'Rifad Hossain',
-          image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_...',
-        },
-      },
-      {
-        _id: '2',
-        title: "Compound Interest: Life's Secret Weapon",
-        description:
-          'Distill the essence of long term financial and mental compound interest to gain leverage in modern asset creation.',
-        category: 'Finance',
-        emotionalTone: 'Realization',
-        accessLevel: 'Free',
-        createdAt: '2026-06-15T10:20:00.000+00:00',
-        image:
-          'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=800&q=80',
-        author: {
-          name: 'Evan',
-          image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT...',
-        },
-      },
-      {
-        _id: '3',
-        title: 'The Psychology of Spending',
-        description:
-          'Understanding the emotional triggers that drive high-net-worth consumption and how to maintain personal control.',
-        category: 'Finance',
-        emotionalTone: 'Motivational',
-        accessLevel: 'Free',
-        createdAt: '2026-06-10T15:00:25.949+00:00',
-        image:
-          'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=800&q=80',
-        author: {
-          name: 'Dr. Julian Thorne',
-          image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR...',
-        },
-      },
-    ];
+    const fetchLessons = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/lessons');
+        if (!response.ok) {
+          throw new Error('Network query validation failed.');
+        }
+        const data = await response.json();
+        setLessons(data);
+      } catch (error) {
+        console.error('Failed to resolve wisdom vault data stream:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setLessons(dummyLessons);
-    setLoading(false);
+    fetchLessons();
   }, []);
 
-  // Filter & Sort Logic
+  // Filter & Sort Logic execution mapping layer
   const filteredLessons = lessons
     .filter(lesson => {
       const matchesSearch =
-        lesson.title.toLowerCase().includes(search.toLowerCase()) ||
-        lesson.description.toLowerCase().includes(search.toLowerCase());
+        lesson.title?.toLowerCase().includes(search.toLowerCase()) ||
+        lesson.description?.toLowerCase().includes(search.toLowerCase());
       const matchesCategory =
         category === 'All' || lesson.category === category;
       const matchesTone = tone === 'All' || lesson.emotionalTone === tone;
@@ -127,7 +89,7 @@ export default function PublicLessonsPage() {
           />
         </div>
 
-        {/* Dropdowns */}
+        {/* Dropdowns filters */}
         <div className="flex flex-wrap gap-4 w-full lg:w-auto justify-end">
           <select
             value={category}
@@ -138,6 +100,7 @@ export default function PublicLessonsPage() {
             <option value="Philosophy">Philosophy</option>
             <option value="Finance">Finance</option>
             <option value="Personal Growth">Personal Growth</option>
+            <option value="Relationships">Relationships</option>
           </select>
 
           <select
@@ -157,7 +120,6 @@ export default function PublicLessonsPage() {
             className="bg-[#1C1812] border border-[#2E281D] text-[#E6DFD3] text-xs h-11 px-4 outline-none cursor-pointer focus:border-[#E5A93C]"
           >
             <option value="newest">Sort by: Newest</option>
-            <option value="popular">Sort by: Most Saved</option>
           </select>
         </div>
       </div>
@@ -173,6 +135,7 @@ export default function PublicLessonsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredLessons.map(lesson => {
+              // Lock premium evaluation logic
               const isLocked =
                 lesson.accessLevel === 'Premium' && !currentUser?.isPremium;
 
@@ -210,7 +173,7 @@ export default function PublicLessonsPage() {
                       </span>
                     </div>
 
-                    {/* Lock Screen with react-icons */}
+                    {/* Lock Screen Frame overlay */}
                     {isLocked && (
                       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center z-10">
                         <div className="w-10 h-10 bg-[#1C1812] border border-[#2E281D] flex items-center justify-center rounded-full mb-2">
@@ -239,13 +202,17 @@ export default function PublicLessonsPage() {
                       </div>
 
                       <h3
-                        className={`font-serif text-lg tracking-wide line-clamp-1 group-hover:text-[#E5A93C] transition-colors ${isLocked ? 'opacity-40 select-none' : ''}`}
+                        className={`font-serif text-lg tracking-wide line-clamp-1 group-hover:text-[#E5A93C] transition-colors ${
+                          isLocked ? 'opacity-40 select-none' : ''
+                        }`}
                       >
                         {lesson.title}
                       </h3>
 
                       <p
-                        className={`text-xs text-[#9C9485] leading-relaxed line-clamp-3 ${isLocked ? 'opacity-20 select-none' : ''}`}
+                        className={`text-xs text-[#9C9485] leading-relaxed line-clamp-3 ${
+                          isLocked ? 'opacity-20 select-none' : ''
+                        }`}
                       >
                         {lesson.description}
                       </p>
@@ -264,22 +231,24 @@ export default function PublicLessonsPage() {
                         />
                         <div className="flex flex-col">
                           <span className="text-xs font-medium text-[#E6DFD3]">
-                            {lesson.author?.name}
+                            {lesson.author?.name || 'Anonymous Tier'}
                           </span>
                           <span className="text-[9px] font-mono text-[#9C9485]/50">
-                            {new Date(lesson.createdAt).toLocaleDateString(
-                              'en-US',
-                              {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              },
-                            )}
+                            {lesson.createdAt
+                              ? new Date(lesson.createdAt).toLocaleDateString(
+                                  'en-US',
+                                  {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  },
+                                )
+                              : 'No Date Specified'}
                           </span>
                         </div>
                       </div>
 
-                      {/* Action Button with react-icons */}
+                      {/* Action Triggers with React Icons */}
                       {isLocked ? (
                         <button
                           disabled
