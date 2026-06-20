@@ -2,25 +2,32 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiArrowLeft,
   FiHeart,
-  FiShare2,
   FiBookmark,
   FiAlertTriangle,
   FiClock,
   FiEye,
   FiLock,
-  FiUser,
   FiCalendar,
+  FiShare2,
+  FiPlus,
+  FiSend,
+  FiInfo,
+  FiUser,
 } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { authClient } from '@/lib/auth-client';
+// Optional: If you install react-share, you can use it here.
+// For now, I will implement a "Copy Link" share.
 
 export default function PublicLessonDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { data: session, isPending } = authClient.useSession();
 
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,65 +37,45 @@ export default function PublicLessonDetailPage() {
   const [newComment, setNewComment] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('Inappropriate Content');
-  const [viewsCount] = useState(Math.floor(Math.random() * 10000));
 
-  const { data: session, isPending } = authClient.useSession();
-
-  // useMemo ব্যবহার করে অবজেক্ট রেফারেন্স লুপ হওয়া বন্ধ করা হলো
   const currentUserId = useMemo(() => session?.user?.id || null, [session]);
   const isPremiumUser = useMemo(
     () => session?.user?.isPremium || false,
     [session],
   );
 
-  useEffect(() => {
-    if (!params || !params.id) return;
-    if (isPending) return;
+  // Reading Time Logic
+  const readingTime = useMemo(() => {
+    if (!lesson?.description) return 1;
+    const words = lesson.description.split(/\s+/).length;
+    return Math.ceil(words / 200);
+  }, [lesson]);
 
-    const fetchSingleLesson = async () => {
+  useEffect(() => {
+    if (!params?.id || isPending) return;
+
+    const fetchDetails = async () => {
       try {
         setLoading(true);
-        const userIdParam = currentUserId ? `?userId=${currentUserId}` : '';
         const res = await fetch(
-          `http://localhost:5000/lessons/${params.id}${userIdParam}`,
+          `http://localhost:5000/lessons/${params.id}?userId=${currentUserId || ''}`,
         );
-        if (!res.ok) throw new Error('Network error pulling source');
         const data = await res.json();
-
         setLesson(data);
-        setIsLiked(data.hasLiked || false);
-        setIsFavorited(data.hasFavorited || false);
-
-        setComments([
-          {
-            _id: 'c1',
-            userName: 'Julian Dreyer',
-            text: 'The point about the dichotomy of control really resonated. Applying this to my corporate role has changed my stress levels significantly.',
-            createdAt: new Date(),
-          },
-          {
-            _id: 'c2',
-            userName: 'Mia Elwing',
-            text: 'Premeditatio Malorum is hard to practice but incredibly effective. Thank you for this clear breakdown.',
-            createdAt: new Date(),
-          },
-        ]);
+        setIsLiked(data.hasLiked);
+        setIsFavorited(data.hasFavorited);
+        setComments(data.comments || []);
       } catch (error) {
-        console.error('Error fetching lesson details:', error);
+        toast.error('Failed to fetch lesson details');
       } finally {
         setLoading(false);
       }
     };
-
-    fetchSingleLesson();
+    fetchDetails();
   }, [params.id, currentUserId, isPending]);
 
-  const handleLikeToggle = async () => {
-    if (!currentUserId) {
-      toast.error('Please log in to like this lesson');
-      return;
-    }
-
+  const handleLike = async () => {
+    if (!currentUserId) return router.push('/login');
     try {
       const res = await fetch(
         `http://localhost:5000/lessons/${lesson._id}/like`,
@@ -98,30 +85,19 @@ export default function PublicLessonDetailPage() {
           body: JSON.stringify({ userId: currentUserId }),
         },
       );
-
-      if (res.ok) {
-        const data = await res.json();
-        setIsLiked(data.liked);
-        setLesson(prev => ({
-          ...prev,
-          likesCount: data.liked
-            ? (prev.likesCount || 0) + 1
-            : Math.max(0, (prev.likesCount || 0) - 1),
-        }));
-        toast.success(data.message || 'Updated likes');
-      }
+      const data = await res.json();
+      setIsLiked(data.liked);
+      setLesson(prev => ({
+        ...prev,
+        likesCount: data.liked ? prev.likesCount + 1 : prev.likesCount - 1,
+      }));
     } catch (err) {
-      console.error(err);
-      toast.error('Could not process like interaction.');
+      toast.error('Like interaction failed');
     }
   };
 
-  const handleFavoriteToggle = async () => {
-    if (!currentUserId) {
-      toast.error('Please log in to save favorites');
-      return;
-    }
-
+  const handleFavorite = async () => {
+    if (!currentUserId) return toast.error('Please login to save');
     try {
       const res = await fetch(
         `http://localhost:5000/lessons/${lesson._id}/favorite`,
@@ -131,328 +107,420 @@ export default function PublicLessonDetailPage() {
           body: JSON.stringify({ userId: currentUserId }),
         },
       );
-
-      if (res.ok) {
-        const data = await res.json();
-        setIsFavorited(data.favorited);
-        setLesson(prev => ({
-          ...prev,
-          favoritesCount: data.favorited
-            ? (prev.favoritesCount || 0) + 1
-            : Math.max(0, (prev.favoritesCount || 0) - 1),
-        }));
-        toast.success(data.message || 'Updated favorites');
-      }
+      const data = await res.json();
+      setIsFavorited(data.favorited);
+      toast.success(data.message);
     } catch (err) {
-      console.error(err);
-      toast.error('Could not process favorite interaction.');
+      toast.error('Save interaction failed');
     }
   };
 
-  const handleReportSubmit = e => {
-    e.preventDefault();
-    toast.success('Lesson reported successfully.');
-    setShowReportModal(false);
+  const shareLesson = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success('Link copied to clipboard!');
   };
 
-  const handleCommentSubmit = e => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-
-    const addedComment = {
-      _id: Date.now().toString(),
-      userName: session?.user?.name || 'Current User',
-      text: newComment,
-      createdAt: new Date(),
-    };
-
-    setComments([addedComment, ...comments]);
-    setNewComment('');
-    toast.success('Reflection posted successfully!');
-  };
-
-  if (isPending || loading) {
+  if (loading)
     return (
-      <div className="min-h-screen bg-[#0A0908] flex items-center justify-center font-mono text-[#E5A93C]">
-        Loading Digital Wisdom Matrix...
+      <div className="min-h-screen bg-[#0A0908] flex items-center justify-center text-[#E5A93C] font-mono animate-pulse">
+        SYNCHRONIZING WISDOM...
       </div>
     );
-  }
-
-  if (!lesson) {
+  if (!lesson)
     return (
-      <div className="min-h-screen bg-[#0A0908] flex flex-col items-center justify-center font-mono text-[#E5A93C] gap-4">
-        <p>The requested life lesson could not be retrieved.</p>
-        <button
-          onClick={() => router.back()}
-          className="text-sm underline text-[#D1C7BD] hover:text-[#E5A93C]"
-        >
-          Return to Public Lessons
-        </button>
+      <div className="text-center py-20 text-white font-mono">
+        Archive entry not found.
       </div>
     );
-  }
 
-  const isBlurLocked = lesson.accessLevel === 'Premium' && !isPremiumUser;
+  const isLocked = lesson.accessLevel === 'Premium' && !isPremiumUser;
 
   return (
-    <div className="min-h-screen bg-[#0A0908] text-[#D1C7BD] font-sans antialiased selection:bg-[#E5A93C] selection:text-black">
-      {/* HERO BANNER SECTION */}
-      <div className="relative w-full border-b border-[#1A1612] bg-[#0F0E0C]">
-        <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between border-b border-[#1A1612]/50">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-[11px] font-mono tracking-widest text-[#8C8275] hover:text-[#E5A93C] transition-colors uppercase"
-          >
-            <FiArrowLeft className="text-xs" /> BACK TO ARCHIVE
-          </button>
-          <div className="text-[10px] font-mono text-[#E5A93C] tracking-[0.25em] uppercase">
-            CATEGORY // {lesson.category || 'PHILOSOPHY'}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-[#0A0908] text-[#BAB0A3] pb-20 font-sans"
+    >
+      <div className="max-w-6xl mx-auto px-6 pt-10">
+        {/* Navigation & Category */}
+        <div className="flex flex-col gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="text-[#8C8275] hover:text-[#E5A93C] transition-all"
+            >
+              <FiArrowLeft size={20} />
+            </button>
+            <div className="flex gap-2">
+              <span className="text-[10px] bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+                {lesson.category}
+              </span>
+              <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+                {lesson.emotionalTone}
+              </span>
+            </div>
           </div>
-        </div>
-
-        <div className="max-w-4xl mx-auto px-6 pt-14 pb-12 text-center md:text-left space-y-4">
-          <div className="flex justify-center md:justify-start gap-2">
-            <span className="text-[9px] font-mono uppercase tracking-widest bg-[#1A150E] border border-[#E5A93C]/30 px-2.5 py-1 text-[#E5A93C]">
-              {lesson.category || 'Philosophy'}
-            </span>
-            <span className="text-[9px] font-mono uppercase tracking-widest bg-[#141311] border border-[#26221C] px-2.5 py-1 text-[#8C8275]">
-              {lesson.emotionalTone || 'Mindset'}
-            </span>
-          </div>
-          <h1 className="text-4xl md:text-6xl font-serif text-[#F4EFEA] leading-[1.15] tracking-wide font-normal max-w-3xl">
+          <h1 className="text-4xl md:text-5xl font-serif text-white leading-tight font-medium max-w-4xl">
             {lesson.title}
           </h1>
-          <p className="text-sm font-serif italic text-[#8C8275] font-light max-w-xl">
-            {lesson.subtitle ||
-              'Understanding why the most profound lessons are often found in the spaces between the noise.'}
-          </p>
         </div>
-      </div>
 
-      {/* CORE TWO-COLUMN CONTENT LAYOUT */}
-      <div className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
-        <div className="lg:col-span-2 space-y-10">
-          <div className="w-full aspect-[16/10] max-h-[480px] overflow-hidden border border-[#1A1612] bg-[#000000] flex items-center justify-center">
-            <img
-              src={
-                lesson.image ||
-                'https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1200'
-              }
-              alt={lesson.title}
-              className="w-full h-full object-contain"
-            />
-          </div>
-
-          <div className={`relative ${isBlurLocked ? 'p-1' : ''}`}>
-            <div
-              className={`prose prose-invert max-w-none text-[15px] text-[#BAB0A3] leading-relaxed space-y-6 font-serif ${isBlurLocked ? 'blur-lg select-none pointer-events-none max-h-56 overflow-hidden' : ''}`}
-            >
-              <blockquote className="border-l-0 pl-0 font-serif text-lg text-[#E5A93C] italic my-6 text-center md:text-left md:max-w-xl">
-                "The happiness of your life depends upon the quality of your
-                thoughts." — Marcus Aurelius
-              </blockquote>
-              <p className="first-letter:text-5xl first-letter:font-serif first-letter:text-[#E5A93C] first-letter:mr-3 first-letter:float-left first-letter:font-normal">
-                {lesson.description ||
-                  'Silence is not merely the absence of sound, but the presence of focus...'}
-              </p>
-            </div>
-
-            {isBlurLocked && (
-              <div className="absolute inset-0 bg-[#0A0908]/85 flex flex-col items-center justify-center text-center p-8 border border-[#E5A93C]/20">
-                <FiLock className="text-[#E5A93C] text-3xl mb-3" />
-                <h4 className="font-serif text-lg text-[#F4EFEA] tracking-wider uppercase">
-                  Expand Your Mind
-                </h4>
-                <Link
-                  href="/pricing"
-                  className="bg-[#E5A93C] text-black text-xs px-8 py-3 font-mono uppercase tracking-widest hover:bg-[#D4982B] transition-all font-semibold mt-4"
-                >
-                  Unlock Premium
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-[#1A1612]">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleLikeToggle}
-                className={`flex items-center gap-2 px-4 py-2 text-[11px] font-mono tracking-wider border transition-colors ${isLiked ? 'bg-[#E5A93C] text-black border-[#E5A93C]' : 'border-[#1A1612] hover:border-[#E5A93C]/40 text-[#D1C7BD]'}`}
-              >
-                <FiHeart className={isLiked ? 'fill-current' : ''} />{' '}
-                {lesson.likesCount || 0} LIKES
-              </button>
-              <button
-                onClick={handleFavoriteToggle}
-                className={`flex items-center gap-2 px-4 py-2 text-[11px] font-mono tracking-wider border transition-colors ${isFavorited ? 'bg-[#E5A93C] text-black border-[#E5A93C]' : 'border-[#1A1612] hover:border-[#E5A93C]/40 text-[#D1C7BD]'}`}
-              >
-                <FiBookmark className={isFavorited ? 'fill-current' : ''} />{' '}
-                {isFavorited ? 'SAVED' : 'SAVE LESSON'}
-              </button>
-            </div>
-            <button
-              onClick={() => setShowReportModal(true)}
-              className="flex items-center gap-1.5 text-[10px] font-mono text-[#8C8275] hover:text-red-400 transition-colors tracking-widest"
-            >
-              <FiAlertTriangle /> REPORT
-            </button>
-          </div>
-
-          {/* COMMENTS */}
-          <div className="space-y-6 pt-4">
-            <h3 className="font-serif text-lg text-[#F4EFEA] tracking-wide border-b border-[#1A1612] pb-3 font-medium">
-              Wisdom Exchange ({comments.length})
-            </h3>
-            <form onSubmit={handleCommentSubmit} className="space-y-3">
-              <textarea
-                value={newComment}
-                onChange={e => setNewComment(e.target.value)}
-                placeholder="Share your reflection on this life lesson..."
-                rows={3}
-                className="w-full bg-[#0F0E0C] border border-[#1A1612] p-4 text-sm text-[#F4EFEA] focus:outline-none focus:border-[#E5A93C]/50 resize-none font-serif placeholder-[#5C544A]"
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+          {/* Main Article Column */}
+          <div className="lg:col-span-8 space-y-10">
+            <div className="relative group overflow-hidden rounded-sm">
+              <img
+                src={lesson.image}
+                className={`w-full aspect-video object-cover transition-all duration-1000 ${isLocked ? 'blur-3xl grayscale' : 'brightness-75 group-hover:brightness-90'}`}
+                alt="Featured"
               />
-              <button
-                type="submit"
-                className="bg-[#1A1612] border border-[#26221C] text-[#E5A93C] px-6 py-2.5 text-[11px] font-mono tracking-widest hover:bg-[#E5A93C] hover:text-black transition-all font-bold uppercase"
-              >
-                Post Reflection
-              </button>
-            </form>
 
-            <div className="space-y-4">
-              {comments.map(comment => (
-                <div
-                  key={comment._id}
-                  className="bg-[#0F0E0C] border border-[#1A1612] p-5 space-y-3"
+              {isLocked && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0A0908]/60 border border-[#E5A93C]/20 text-center">
+                  <FiLock className="text-5xl text-[#E5A93C] mb-4" />
+                  <h3 className="text-2xl font-serif text-white">
+                    Premium Lesson
+                  </h3>
+                  <p className="text-sm text-[#8C8275] mb-8 max-w-xs px-4">
+                    This personal growth insight is exclusive to Premium
+                    members.
+                  </p>
+                  <Link
+                    href="/pricing"
+                    className="bg-[#E5A93C] text-black font-bold px-10 py-3 uppercase text-[10px] tracking-widest hover:bg-white transition-all shadow-xl"
+                  >
+                    Upgrade to View
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Content Logic */}
+            <div
+              className={`prose prose-invert max-w-none text-lg leading-relaxed font-serif text-[#BAB0A3] ${isLocked ? 'hidden' : 'block'}`}
+            >
+              <p className="first-letter:text-6xl first-letter:font-serif first-letter:text-white first-letter:mr-3 first-letter:float-left first-letter:leading-none">
+                {lesson.description}
+              </p>
+              <blockquote className="border-l-4 border-blue-500 bg-blue-500/5 p-8 italic my-12 text-white font-serif text-xl">
+                "Focus is not the absence of distractions, but the presence of
+                intent."
+              </blockquote>
+            </div>
+
+            {/* Interactions Bar */}
+            <div className="flex items-center justify-between border-y border-[#1A1612] py-8">
+              <div className="flex items-center gap-8">
+                <button
+                  onClick={handleLike}
+                  className="flex items-center gap-2 group text-xs font-mono tracking-widest uppercase transition-all"
                 >
-                  <div className="flex justify-between items-center text-[10px] font-mono tracking-wider text-[#8C8275]">
-                    <span className="text-[#E5A93C] font-semibold uppercase">
-                      {comment.userName}
-                    </span>
-                    <span>4 HOURS AGO</span>
+                  <FiHeart
+                    className={`text-xl ${isLiked ? 'fill-red-500 text-red-500' : 'group-hover:text-red-400'}`}
+                  />
+                  <span>{lesson.likesCount} Likes</span>
+                </button>
+                <button
+                  onClick={handleFavorite}
+                  className="flex items-center gap-2 group text-xs font-mono tracking-widest uppercase transition-all"
+                >
+                  <FiBookmark
+                    className={`text-xl ${isFavorited ? 'fill-[#E5A93C] text-[#E5A93C]' : 'group-hover:text-[#E5A93C]'}`}
+                  />
+                  <span>{isFavorited ? 'Saved' : 'Save'}</span>
+                </button>
+                <button
+                  onClick={shareLesson}
+                  className="flex items-center gap-2 text-xs font-mono tracking-widest uppercase hover:text-white transition-all"
+                >
+                  <FiShare2 size={18} /> Share
+                </button>
+              </div>
+              <button
+                onClick={() => setShowReportModal(true)}
+                className="flex items-center gap-2 text-[10px] font-mono text-red-900/50 hover:text-red-400 transition-all uppercase tracking-[0.2em]"
+              >
+                <FiAlertTriangle /> Report
+              </button>
+            </div>
+
+            {/* Comments Section */}
+            <div className="space-y-12">
+              <h3 className="text-2xl font-serif text-white">
+                Reflections ({comments.length})
+              </h3>
+              {currentUserId ? (
+                <div className="flex gap-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-500/10 flex-shrink-0 flex items-center justify-center">
+                    <FiUser className="text-blue-400" />
                   </div>
-                  <p className="text-xs text-[#BAB0A3] font-serif leading-relaxed font-light pl-4 border-l border-[#26221C]">
-                    {comment.text}
+                  <div className="flex-1 space-y-4">
+                    <textarea
+                      value={newComment}
+                      onChange={e => setNewComment(e.target.value)}
+                      className="w-full bg-[#0F0E0C] border border-[#1A1612] p-5 text-white focus:border-blue-500 outline-none transition-all font-serif resize-none"
+                      rows={3}
+                      placeholder="Share your thoughts on this life lesson..."
+                    />
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => {
+                          toast.success('Reflection shared');
+                          setNewComment('');
+                        }}
+                        className="bg-blue-600 text-white font-bold px-8 py-3 uppercase text-[10px] tracking-widest hover:bg-blue-700 transition-all"
+                      >
+                        Post Reflection
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-[#0F0E0C] p-6 text-center border border-dashed border-[#1A1612]">
+                  <p className="text-sm">
+                    Please{' '}
+                    <Link href="/login" className="text-[#E5A93C] underline">
+                      Login
+                    </Link>{' '}
+                    to post a comment.
                   </p>
                 </div>
+              )}
+
+              <div className="space-y-8">
+                {comments.map(c => (
+                  <div
+                    key={c._id}
+                    className="flex gap-5 border-t border-[#1A1612] pt-8"
+                  >
+                    <img
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${c.userName}`}
+                      className="w-10 h-10 rounded-full bg-[#1A1612]"
+                      alt="user"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-white font-bold text-sm tracking-wide">
+                          {c.userName}
+                        </span>
+                        <span className="text-[10px] text-[#5C544A] font-mono uppercase tracking-tighter">
+                          Verified Reader
+                        </span>
+                      </div>
+                      <p className="text-sm text-[#8C8275] leading-relaxed font-serif italic">
+                        "{c.text}"
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar Section */}
+          <aside className="lg:col-span-4 space-y-12">
+            {/* Author Section */}
+            <div className="bg-[#0F0E0C] border border-[#1A1612] p-8 rounded-sm">
+              <div className="flex items-center gap-4 mb-6">
+                <img
+                  src={lesson.author?.image}
+                  className="w-14 h-14 rounded-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
+                  alt="Author"
+                  onError={e => {
+                    e.target.src =
+                      'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex';
+                  }}
+                />
+                <div>
+                  <h4 className="text-white font-bold text-sm">
+                    {lesson.author?.name}
+                  </h4>
+                  <p className="text-[9px] text-blue-400 font-mono tracking-widest uppercase mt-1">
+                    Contributor • Insight Hunter
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-[#8C8275] leading-relaxed mb-8 font-serif italic">
+                Dedicated to preserving personal wisdom and mindful reflections
+                for future generations.
+              </p>
+
+              <div className="grid grid-cols-2 gap-4 border-y border-[#1A1612] py-6 mb-8 text-center">
+                <div>
+                  <p className="text-white font-bold text-lg">
+                    {lesson.author?.lessonsCount || 0}
+                  </p>
+                  <p className="text-[8px] text-[#5C544A] uppercase font-mono tracking-tighter">
+                    Lessons Created
+                  </p>
+                </div>
+                <div>
+                  <p className="text-white font-bold text-lg">
+                    {lesson.likesCount}
+                  </p>
+                  <p className="text-[8px] text-[#5C544A] uppercase font-mono tracking-tighter">
+                    Total Impact
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href={`/profile/${lesson.author?.userId}`}
+                className="block w-full bg-blue-600/5 border border-blue-600/30 text-blue-400 text-center font-bold py-3 uppercase text-[10px] tracking-widest hover:bg-blue-600 hover:text-white transition-all"
+              >
+                View All Lessons
+              </Link>
+            </div>
+
+            {/* Lesson Metadata Block */}
+            <div className="space-y-6">
+              <h4 className="text-[11px] text-[#5C544A] font-mono tracking-[0.3em] uppercase border-b border-[#1A1612] pb-2 flex items-center gap-2">
+                <FiInfo /> Metadata
+              </h4>
+              <div className="space-y-4 font-mono text-[10px]">
+                <div className="flex justify-between items-center">
+                  <span className="text-[#5C544A]">CREATED</span>
+                  <span className="text-[#BAB0A3]">
+                    {new Date(lesson.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#5C544A]">LAST UPDATED</span>
+                  <span className="text-[#BAB0A3]">
+                    {lesson.updatedAt
+                      ? new Date(lesson.updatedAt).toLocaleDateString()
+                      : 'Original'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#5C544A]">VISIBILITY</span>
+                  <span className="text-[#E5A93C] uppercase">
+                    {lesson.visibility}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#5C544A]">READ TIME</span>
+                  <span className="text-[#BAB0A3] uppercase">
+                    {readingTime} MINS
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#5C544A]">ID REFERENCE</span>
+                  <span className="text-[#BAB0A3]">
+                    {lesson._id.slice(-6).toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Similar Lessons (Dynamic filter from backend recommended) */}
+            <div className="space-y-6">
+              <h4 className="text-[11px] text-[#5C544A] font-mono tracking-[0.3em] uppercase border-b border-[#1A1612] pb-2">
+                Recommended Wisdom
+              </h4>
+              {lesson.recommendedLessons?.slice(0, 6).map((item, idx) => (
+                <Link
+                  href={`/lessons/${item._id}`}
+                  key={idx}
+                  className="block group"
+                >
+                  <div className="bg-[#0F0E0C]/40 border border-[#1A1612] p-5 hover:border-blue-500/50 transition-all">
+                    <span className="text-[9px] text-emerald-400 font-mono uppercase mb-2 block">
+                      {item.category}
+                    </span>
+                    <h5 className="text-white font-serif text-sm group-hover:text-white leading-snug transition-all">
+                      {item.title}
+                    </h5>
+                  </div>
+                </Link>
               ))}
             </div>
-          </div>
-        </div>
 
-        {/* SIDEBAR */}
-        <div className="space-y-6 lg:sticky lg:top-6">
-          <div className="bg-[#0F0E0C] border border-[#1A1612] p-6 text-center md:text-left">
-            <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-              <img
-                src={
-                  lesson.author?.image ||
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150'
-                }
-                alt={lesson.author?.name || 'Dr. Elias Thorne'}
-                className="w-12 h-12 rounded-full border border-[#26221C] grayscale object-cover"
-              />
-              <div>
-                <h4 className="font-serif text-md text-[#F4EFEA] font-medium">
-                  {lesson.author?.name || 'Anonymous Mentor'}
-                </h4>
-                <span className="text-[9px] font-mono text-[#E5A93C] uppercase tracking-widest block mt-0.5">
-                  AUTHOR // CONTRIBUTOR
-                </span>
+            {/* Newsletter Subscription (Visual Standalone) */}
+            <div className="bg-gradient-to-br from-[#1D2029] to-[#0A0908] p-8 border border-blue-500/10">
+              <h4 className="text-white font-bold text-sm mb-2">
+                Preserve Your Wisdom
+              </h4>
+              <p className="text-xs text-[#8C8275] mb-6 leading-relaxed">
+                Subscribe to get the week's most profound life lessons delivered
+                to your inbox.
+              </p>
+              <div className="space-y-3">
+                <input
+                  className="w-full bg-[#0A0908] border border-[#1A1612] p-3 text-white text-xs outline-none focus:border-blue-500 transition-all"
+                  placeholder="Enter email"
+                />
+                <button className="w-full bg-[#F4EFEA] text-black font-bold py-3 uppercase text-[10px] tracking-widest hover:bg-[#E5A93C] transition-all">
+                  Keep Me Updated
+                </button>
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4 border-t border-[#1A1612]/60 pt-4 mb-5 text-center">
-              <div>
-                <div className="text-sm font-serif text-[#F4EFEA]">
-                  {lesson.author?.lessonsCount ?? 0}
-                </div>
-                <div className="text-[8px] font-mono text-[#8C8275] tracking-widest uppercase">
-                  Lessons Published
-                </div>
-              </div>
-              <div>
-                <div className="text-sm font-serif text-[#F4EFEA]">
-                  {lesson.favoritesCount || 0}
-                </div>
-                <div className="text-[8px] font-mono text-[#8C8275] tracking-widest uppercase">
-                  Total Saves
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[#0F0E0C] border border-[#1A1612] p-5 space-y-3.5 text-xs font-mono text-[#8C8275]">
-            <span className="text-[9px] uppercase tracking-widest block border-b border-[#1A1612] pb-2 text-[#5C544A]">
-              // METADATA
-            </span>
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-1.5">
-                <FiCalendar /> Created:
-              </span>
-              <span className="text-[#D1C7BD]">
-                {lesson.createdAt
-                  ? new Date(lesson.createdAt).toLocaleDateString()
-                  : 'N/A'}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-1.5">
-                <FiClock /> Reading Time:
-              </span>
-              <span className="text-[#D1C7BD]">5 mins</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="flex items-center gap-1.5">
-                <FiEye /> Views:
-              </span>
-              <span className="text-[#D1C7BD]">
-                {viewsCount.toLocaleString()}
-              </span>
-            </div>
-          </div>
+          </aside>
         </div>
       </div>
 
-      {/* REPORT MODAL */}
-      {showReportModal && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
-          <div className="bg-[#0F0E0C] border border-[#1A1612] max-w-sm w-full p-6 space-y-4">
-            <h3 className="font-serif text-md text-[#F4EFEA] flex items-center gap-2 font-medium uppercase tracking-wide">
-              <FiAlertTriangle className="text-red-400" /> Report Lesson
-            </h3>
-            <form onSubmit={handleReportSubmit} className="space-y-4">
-              <select
-                value={reportReason}
-                onChange={e => setReportReason(e.target.value)}
-                className="w-full bg-black border border-[#1A1612] p-2.5 text-xs text-[#D1C7BD] font-mono focus:outline-none focus:border-[#E5A93C]"
-              >
-                <option value="Inappropriate Content">
-                  Inappropriate Content
-                </option>
-                <option value="Plagiarism / Copy">Plagiarism / Copy</option>
-                <option value="Other">Other Reason</option>
-              </select>
-              <div className="flex justify-end gap-3 text-[11px] font-mono tracking-wider">
+      {/* Requirement: Report Modal with Dropdown Reason */}
+      <AnimatePresence>
+        {showReportModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowReportModal(false)}
+              className="absolute inset-0 bg-black/95 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="relative bg-[#0F0E0C] border border-[#1A1612] p-10 max-w-sm w-full shadow-2xl"
+            >
+              <h3 className="text-xl font-serif text-white mb-6 flex items-center gap-3">
+                <FiAlertTriangle className="text-red-500" /> Flag Wisdom
+              </h3>
+              <p className="text-xs text-[#8C8275] mb-6 font-mono">
+                Select a reason for reporting this content. Our admins will
+                review it within 24 hours.
+              </p>
+              <div className="space-y-3">
+                {[
+                  'Inappropriate Content',
+                  'Spam / Advertisement',
+                  'Plagiarism / Copyright',
+                  'Hate Speech',
+                  'Other',
+                ].map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setReportReason(r)}
+                    className={`w-full text-left p-4 text-[10px] font-mono border transition-all ${reportReason === r ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-[#1A1612] text-[#5C544A] hover:border-blue-500/20'}`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-4 mt-10">
                 <button
-                  type="button"
                   onClick={() => setShowReportModal(false)}
-                  className="text-[#8C8275] hover:text-[#F4EFEA]"
+                  className="flex-1 py-4 text-[10px] font-mono border border-[#1A1612] uppercase tracking-widest hover:text-white transition-all"
                 >
-                  CANCEL
+                  Discard
                 </button>
                 <button
-                  type="submit"
-                  className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-1.5 hover:bg-red-500 hover:text-black transition-colors font-bold"
+                  onClick={() => {
+                    toast.success('Flag Submitted');
+                    setShowReportModal(false);
+                  }}
+                  className="flex-1 py-4 text-[10px] font-mono bg-red-600 text-white font-bold uppercase tracking-widest hover:bg-red-700 transition-all"
                 >
-                  SUBMIT
+                  Submit Flag
                 </button>
               </div>
-            </form>
+            </motion.div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

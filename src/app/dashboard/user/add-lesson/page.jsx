@@ -4,41 +4,43 @@ import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { CloudArrowUpIn, Lock, Plus, Xmark } from '@gravity-ui/icons';
 import toast, { Toaster } from 'react-hot-toast';
-import { useSession } from '@/lib/auth-client';
+import { authClient } from '@/lib/auth-client'; // নিশ্চিত করুন এটি সঠিক পাথ
+import { useRouter } from 'next/navigation';
 
 export default function AddLessonPage() {
-  // 🔐 Retrieve real session details
-  const { data: session, status } = useSession();
+  const router = useRouter();
+  // 🔐 Better Auth-এর সঠিক সেশন হ্যান্ডলিং (isPending ব্যবহার করা হয়েছে)
+  const { data: session, isPending: authLoading } = authClient.useSession();
 
-  // Core form states (Initialized with empty strings to force user selection)
+  // Core form states
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [emotionalTone, setEmotionalTone] = useState('');
   const [accessLevel, setAccessLevel] = useState('Free');
   const [description, setDescription] = useState('');
 
-  // Tags workflow state configurations
+  // Tags
   const [tags, setTags] = useState(['Stoicism', 'Digital Minimalism', 'Focus']);
   const [newTag, setNewTag] = useState('');
   const [showTagInput, setShowTagInput] = useState(false);
 
-  // Asset pipelines & visual states
+  // Asset pipelines
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Monitor loading sequence authentication loop
-  if (status === 'loading') {
+  // ১. লোডিং চেক (ফিক্সড)
+  if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#0F0D0A] flex items-center justify-center font-mono text-[#E5A93C]">
-        Authenticating session sequence...
+      <div className="min-h-screen bg-[#0F0D0A] flex items-center justify-center font-mono text-[#E5A93C] animate-pulse">
+        AUTHENTICATING SESSION...
       </div>
     );
   }
 
-  // Restrict access for unauthenticated entry requests
-  if (status === 'unauthenticated' || !session?.user) {
+  // ২. লগইন না থাকলে এক্সেস ডিনাইড
+  if (!session?.user) {
     return (
       <div className="min-h-screen bg-[#0F0D0A] flex items-center justify-center p-6">
         <div className="text-center max-w-md border border-[#231E15] bg-[#14110C] p-8 space-y-4">
@@ -46,6 +48,12 @@ export default function AddLessonPage() {
           <p className="text-sm text-[#9C9485]">
             Please log in to your account to publish a masterpiece.
           </p>
+          <button
+            onClick={() => router.push('/login')}
+            className="text-[#E5A93C] underline text-sm"
+          >
+            Go to Login
+          </button>
         </div>
       </div>
     );
@@ -56,12 +64,10 @@ export default function AddLessonPage() {
   const handleFileChange = e => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     if (!file.type.startsWith('image/')) {
       toast.error('Please select a valid image file.');
       return;
     }
-
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
   };
@@ -98,14 +104,12 @@ export default function AddLessonPage() {
   };
 
   const handleSubmit = async e => {
-    e.preventDefault(); // This triggers only when HTML5 built-in validation passes
-
+    e.preventDefault();
     setIsPublishing(true);
     const processToast = toast.loading('Initiating publication sequence...');
 
     try {
       let finalImageUrl = '';
-      // Image field is now fully optional. Triggers upload only if file is selected
       if (selectedFile) {
         toast.loading('Uploading asset to ImgBB...', { id: processToast });
         finalImageUrl = await uploadImageToImgBB();
@@ -118,11 +122,11 @@ export default function AddLessonPage() {
         accessLevel: user.isPremium ? accessLevel : 'Free',
         description,
         tags,
-        image: finalImageUrl, // Will be empty string "" if no image is given
+        image: finalImageUrl,
         visibility: 'Public',
         createdAt: new Date(),
         author: {
-          userId: user.id || user.uid,
+          userId: user.id, // আপনার সার্ভারের কোয়েরি অনুযায়ী userId সেট করা হয়েছে
           name: user.name,
           email: user.email,
           image: user.image,
@@ -130,57 +134,41 @@ export default function AddLessonPage() {
       };
 
       toast.loading('Storing wisdom in database...', { id: processToast });
-      const serverResponse = await fetch('http://localhost:5000/lessons', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(lessonData),
-      });
 
-      const serverResult = await serverResponse.json();
+      // ফিক্সড: ব্যাকটিক (``) ব্যবহার করা হয়েছে
+      const serverResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/lessons`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(lessonData),
+        },
+      );
 
-      if (serverResult.insertedId) {
+      if (serverResponse.ok) {
         toast.success('🎉 Wisdom Published Successfully!', {
           id: processToast,
         });
-        setTitle('');
-        setCategory('');
-        setEmotionalTone('');
-        setDescription('');
-        setSelectedFile(null);
-        setPreviewUrl('');
-        setTags(['Stoicism', 'Digital Minimalism', 'Focus']);
+        router.push('/dashboard/user/my-lessons'); // সাকসেস হলে রিডাইরেক্ট
       } else {
         throw new Error('Failed to save data on server');
       }
     } catch (error) {
-      console.error('Publication Error:', error);
-      toast.error(error.message || 'An error occurred during publication.', {
-        id: processToast,
-      });
+      toast.error(error.message || 'An error occurred.', { id: processToast });
     } finally {
       setIsPublishing(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0F0D0A] text-[#E6DFD3] p-6 md:p-12 font-sans antialiased selection:bg-[#E5A93C] selection:text-black">
-      <Toaster
-        toastOptions={{
-          style: {
-            background: '#14110C',
-            color: '#E6DFD3',
-            border: '1px solid #231E15',
-            borderRadius: '0px',
-          },
-        }}
-      />
-
+    <div className="min-h-screen bg-[#0F0D0A] text-[#E6DFD3] p-6 md:p-12 font-sans antialiased">
+      <Toaster position="top-center" />
       <div className="max-w-6xl mx-auto">
         <form
           onSubmit={handleSubmit}
           className="grid grid-cols-1 lg:grid-cols-12 gap-10"
         >
-          {/* LEFT COLUMN: Core Attributes */}
+          {/* LEFT COLUMN */}
           <div className="lg:col-span-7 space-y-8">
             <div>
               <p className="text-[10px] font-mono text-[#E5A93C]/60 uppercase tracking-[0.3em] mb-1">
@@ -193,127 +181,102 @@ export default function AddLessonPage() {
 
             <div className="bg-[#14110C] border border-[#231E15] p-8 space-y-6 shadow-2xl">
               <div className="flex flex-col gap-2">
-                <label className="text-[#9C9485] font-medium text-xs uppercase tracking-wider">
-                  Lesson Title <span className="text-[#E5A93C]">*</span>
+                <label className="text-[#9C9485] font-medium text-xs uppercase">
+                  Lesson Title *
                 </label>
                 <input
-                  type="text"
                   required
-                  placeholder="e.g. The Stoic Path to Digital Silence"
+                  type="text"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  className="bg-[#1C1812] border border-[#2E281D] text-[#E6DFD3] placeholder:text-[#9C9485]/30 text-sm p-3 outline-none hover:border-[#E5A93C]/50 focus:border-[#E5A93C] transition-colors"
+                  className="bg-[#1C1812] border border-[#2E281D] text-[#E6DFD3] text-sm p-3 outline-none focus:border-[#E5A93C]"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {/* Category Dropdown */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-[#9C9485] font-medium text-xs uppercase tracking-wider">
-                    Category <span className="text-[#E5A93C]">*</span>
+                  <label className="text-[#9C9485] font-medium text-xs uppercase">
+                    Category *
                   </label>
                   <select
                     required
                     value={category}
                     onChange={e => setCategory(e.target.value)}
-                    className="bg-[#1C1812] border border-[#2E281D] text-[#E6DFD3] text-sm p-3 outline-none cursor-pointer focus:border-[#E5A93C]"
+                    className="bg-[#1C1812] border border-[#2E281D] text-[#E6DFD3] text-sm p-3 outline-none"
                   >
-                    <option value="" disabled>
-                      Select Category
-                    </option>
+                    <option value="">Select</option>
                     <option value="Personal Growth">Personal Growth</option>
                     <option value="Career">Career</option>
-                    <option value="Relationships">Relationships</option>
                     <option value="Mindset">Mindset</option>
-                    <option value="Mistakes Learned">Mistakes Learned</option>
+                    <option value="Relationships">Relationships</option>
                   </select>
                 </div>
-
-                {/* Emotional Tone Dropdown */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-[#9C9485] font-medium text-xs uppercase tracking-wider">
-                    Emotional Tone <span className="text-[#E5A93C]">*</span>
+                  <label className="text-[#9C9485] font-medium text-xs uppercase">
+                    Tone *
                   </label>
                   <select
                     required
                     value={emotionalTone}
                     onChange={e => setEmotionalTone(e.target.value)}
-                    className="bg-[#1C1812] border border-[#2E281D] text-[#E6DFD3] text-sm p-3 outline-none cursor-pointer focus:border-[#E5A93C]"
+                    className="bg-[#1C1812] border border-[#2E281D] text-[#E6DFD3] text-sm p-3 outline-none"
                   >
-                    <option value="" disabled>
-                      Select Emotional Tone
-                    </option>
+                    <option value="">Select</option>
                     <option value="Motivational">Motivational</option>
-                    <option value="Sad">Sad</option>
                     <option value="Realization">Realization</option>
+                    <option value="Sad">Sad</option>
                     <option value="Gratitude">Gratitude</option>
                   </select>
                 </div>
               </div>
 
               <div className="flex flex-col gap-2 pt-2">
-                <label className="text-[#9C9485] font-medium text-xs uppercase tracking-wider">
+                <label className="text-[#9C9485] font-medium text-xs uppercase">
                   Access Level
                 </label>
                 <div className="flex items-center gap-6 mt-1">
-                  <label className="flex items-center gap-2 text-sm font-medium text-[#E6DFD3] cursor-pointer">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input
                       type="radio"
-                      name="accessLevel"
-                      value="Free"
                       checked={accessLevel === 'Free'}
                       onChange={() => setAccessLevel('Free')}
-                      className="w-4 h-4 accent-[#E5A93C] bg-black border-[#2E281D]"
-                    />
+                      className="accent-[#E5A93C]"
+                    />{' '}
                     Standard (Free)
                   </label>
-
                   <div className="relative group flex items-center">
                     <label
-                      className={`flex items-center gap-2 text-sm font-medium transition-opacity ${!user.isPremium ? 'text-[#9C9485]/40 cursor-not-allowed' : 'text-[#E6DFD3] cursor-pointer'}`}
+                      className={`flex items-center gap-2 text-sm ${!user.isPremium ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                     >
                       <input
                         type="radio"
-                        name="accessLevel"
-                        value="Premium"
                         disabled={!user.isPremium}
                         checked={accessLevel === 'Premium'}
-                        onChange={() =>
-                          user.isPremium && setAccessLevel('Premium')
-                        }
-                        className="w-4 h-4 accent-[#E5A93C] bg-black border-[#2E281D]"
-                      />
+                        onChange={() => setAccessLevel('Premium')}
+                        className="accent-[#E5A93C]"
+                      />{' '}
                       Premium ⭐
-                      {!user.isPremium && (
-                        <Lock className="w-3.5 h-3.5 text-[#9C9485]/40 mb-0.5" />
-                      )}
                     </label>
-                    {!user.isPremium && (
-                      <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-72 p-3 bg-[#1C1812] text-[#E5A93C] border border-[#2E281D] text-xs leading-relaxed shadow-xl z-20">
-                        Upgrade to Premium to create locked lessons.
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2 pt-2">
-                <label className="text-[#9C9485] font-medium text-xs uppercase tracking-wider">
-                  Lesson Description <span className="text-[#E5A93C]">*</span>
+              <div className="flex flex-col gap-2">
+                <label className="text-[#9C9485] font-medium text-xs uppercase">
+                  Description *
                 </label>
                 <textarea
                   required
                   rows={6}
-                  placeholder="Describe Lessons Full Description / Story / Insight ..."
                   value={description}
                   onChange={e => setDescription(e.target.value)}
-                  className="bg-[#1C1812] border border-[#2E281D] text-[#E6DFD3] placeholder:text-[#9C9485]/30 text-base p-4 outline-none hover:border-[#E5A93C]/30 focus:border-[#E5A93C] transition-colors resize-none leading-relaxed"
+                  className="bg-[#1C1812] border border-[#2E281D] text-[#E6DFD3] p-4 outline-none focus:border-[#E5A93C] resize-none"
                 />
               </div>
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Visual Identity & Tags */}
+          {/* RIGHT COLUMN */}
           <div className="lg:col-span-5 flex flex-col justify-between space-y-10">
             <div className="space-y-8">
               <div>
@@ -321,12 +284,11 @@ export default function AddLessonPage() {
                   Step 02
                 </p>
                 <h1 className="text-3xl font-serif text-[#E6DFD3] tracking-wide">
-                  Visual Identity (Optional)
+                  Visual Identity
                 </h1>
               </div>
 
-              {/* Upload Zone (No required attribute, fully optional) */}
-              <div className="bg-[#14110C] border border-dashed border-[#2E281D] flex flex-col items-center justify-center p-6 shadow-2xl relative group min-h-[300px]">
+              <div className="bg-[#14110C] border border-dashed border-[#2E281D] flex flex-col items-center justify-center p-6 min-h-[300px] relative group">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -334,113 +296,80 @@ export default function AddLessonPage() {
                   accept="image/*"
                   className="hidden"
                 />
-
                 {previewUrl ? (
-                  <div className="w-full flex flex-col space-y-4">
-                    <div className="relative w-full aspect-video overflow-hidden border border-[#231E15] bg-[#0F0D0A]">
-                      <img
-                        src={previewUrl}
-                        className="w-full h-full object-cover grayscale contrast-115 transition-all duration-300 group-hover:scale-[1.02]"
-                        alt="preview"
-                      />
-                      <button
-                        type="button"
-                        className="absolute top-3 right-3 bg-black/80 text-[#E6DFD3] p-1.5 border border-[#2E281D] backdrop-blur-sm transition-colors"
-                        onClick={() => {
-                          setSelectedFile(null);
-                          setPreviewUrl('');
-                        }}
-                      >
-                        <Xmark className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <p className="text-xs font-mono text-[#E5A93C]/80 text-center animate-pulse">
-                      Asset staged (Will upload upon final submission)
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-center flex flex-col items-center max-w-sm space-y-4 py-8">
-                    <div
-                      className="w-14 h-14 bg-[#1C1812] border border-[#2E281D] flex items-center justify-center rounded-xl shadow-inner group-hover:border-[#E5A93C]/40 transition-colors cursor-pointer"
-                      onClick={() => fileInputRef.current.click()}
-                    >
-                      <CloudArrowUpIn className="w-6 h-6 text-[#E5A93C]" />
-                    </div>
-                    <h3 className="font-serif text-lg text-[#E6DFD3]">
-                      Hero Imagery
-                    </h3>
-                    <p className="text-xs text-[#9C9485] px-4">
-                      Drag and drop high-fidelity visual assets here to anchor
-                      the lesson's aesthetic.
-                    </p>
+                  <div className="w-full relative">
+                    <img
+                      src={previewUrl}
+                      className="w-full h-48 object-cover rounded border border-[#231E15]"
+                    />
                     <button
                       type="button"
-                      onClick={() => fileInputRef.current.click()}
-                      className="border border-[#E5A93C] text-[#E5A93C] font-medium tracking-wide transition-all h-10 px-6 text-xs uppercase font-mono"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setPreviewUrl('');
+                      }}
+                      className="absolute top-2 right-2 bg-black/80 p-1 rounded"
                     >
-                      Select Archive Files
+                      <Xmark className="w-4 h-4" />
                     </button>
+                  </div>
+                ) : (
+                  <div
+                    className="text-center space-y-4 cursor-pointer"
+                    onClick={() => fileInputRef.current.click()}
+                  >
+                    <CloudArrowUpIn className="w-10 h-10 text-[#E5A93C] mx-auto" />
+                    <p className="text-xs text-[#9C9485]">
+                      Click to upload hero imagery
+                    </p>
                   </div>
                 )}
               </div>
 
-              {/* Tags Section */}
-              <div className="bg-[#14110C] border border-[#231E15] p-6 space-y-4 shadow-xl">
-                <div className="flex justify-between items-center">
-                  <p className="text-xs text-[#9C9485] font-semibold uppercase tracking-wider">
-                    Content Tags
-                  </p>
-                  <span className="text-[10px] font-mono text-[#9C9485]/40">
-                    {tags.length}/10 used
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap gap-2.5">
+              <div className="bg-[#14110C] border border-[#231E15] p-6 space-y-4">
+                <p className="text-xs text-[#9C9485] uppercase">
+                  Tags ({tags.length}/10)
+                </p>
+                <div className="flex flex-wrap gap-2">
                   {tags.map(t => (
                     <span
                       key={t}
-                      className="bg-[#1C1812] border border-[#2E281D] text-[#E5A93C] font-mono text-xs px-2.5 py-1 flex items-center gap-1.5"
+                      className="bg-[#1C1812] border border-[#2E281D] text-[#E5A93C] text-[10px] px-2 py-1 flex items-center gap-1"
                     >
                       {t}{' '}
                       <Xmark
-                        className="w-3 h-3 cursor-pointer text-[#9C9485] hover:text-[#E5A93C]"
+                        className="w-3 h-3 cursor-pointer"
                         onClick={() => setTags(tags.filter(tag => tag !== t))}
                       />
                     </span>
                   ))}
-
                   {showTagInput ? (
                     <input
-                      type="text"
                       autoFocus
                       value={newTag}
                       onChange={e => setNewTag(e.target.value)}
                       onKeyDown={handleAddTag}
-                      onBlur={() => setShowTagInput(false)}
-                      className="bg-[#1C1812] border border-[#E5A93C]/50 text-xs text-[#E6DFD3] font-mono px-2 py-1 outline-none w-24"
+                      className="bg-transparent border-b border-[#E5A93C] text-xs outline-none w-20"
                     />
                   ) : (
-                    tags.length < 10 && (
-                      <button
-                        type="button"
-                        onClick={() => setShowTagInput(true)}
-                        className="bg-transparent border border-dashed border-[#2E281D] text-[#9C9485] hover:text-[#E5A93C] hover:border-[#E5A93C]/40 text-xs font-mono px-2.5 py-1 flex items-center gap-1 transition-colors"
-                      >
-                        <Plus className="w-3 h-3" /> Add Tag
-                      </button>
-                    )
+                    <button
+                      type="button"
+                      onClick={() => setShowTagInput(true)}
+                      className="text-[10px] text-[#9C9485] border border-dashed border-[#2E281D] px-2 py-1"
+                    >
+                      + Add
+                    </button>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Submit Button */}
             <motion.button
-              whileHover={{ scale: isPublishing ? 1 : 1.01 }}
-              whileTap={{ scale: isPublishing ? 1 : 0.99 }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
               type="submit"
               disabled={isPublishing}
-              className={`w-full bg-[#E5A93C] text-black font-semibold font-serif h-16 text-md tracking-widest uppercase transition-all duration-300 shadow-xl ${isPublishing ? 'opacity-50 cursor-not-allowed bg-[#9C9485]' : 'hover:bg-[#d4982f]'}`}
+              className={`w-full bg-[#E5A93C] text-black font-bold h-16 tracking-widest uppercase ${isPublishing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#d4982f]'}`}
             >
               {isPublishing ? 'PUBLISHING...' : 'PUBLISH MASTERPIECE'}
             </motion.button>
