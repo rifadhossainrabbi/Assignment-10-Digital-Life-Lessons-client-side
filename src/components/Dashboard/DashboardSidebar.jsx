@@ -25,7 +25,7 @@ const DashboardSidebar = () => {
 
   // Navigation items configuration
   const navItems = [
-    { icon: LayoutDashboard, href: '/dashboard/user', label: 'Dashboard' },
+    { icon: LayoutDashboard, href: '/dashboard', label: 'Dashboard' },
     {
       icon: PlusSquare,
       href: '/dashboard/user/add-lesson',
@@ -34,7 +34,7 @@ const DashboardSidebar = () => {
     { icon: BookOpen, href: '/dashboard/user/my-lessons', label: 'My Lessons' },
     {
       icon: Sparkles,
-      href: '/dashboard/user/my-favorites',
+      href: '/dashboard/user/favorite-lesson',
       label: 'Favorites',
     },
     { icon: User, href: '/dashboard/profile/user-profile', label: 'Profile' },

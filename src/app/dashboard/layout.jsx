@@ -1,4 +1,4 @@
-import DashboardSidebar from '@/components/Dashboard/User/DashboardSidebar';
+import DashboardSidebar from '@/components/Dashboard/DashboardSidebar';
 import React from 'react';
 import { auth } from '@/lib/auth'; // আপনার Better Auth-এর মেইন সার্ভার ইনস্ট্যান্স পাথটি দিন
 import { headers } from 'next/headers';

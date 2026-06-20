@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   FiArrowLeft,
@@ -14,9 +14,9 @@ import {
   FiUser,
   FiCalendar,
 } from 'react-icons/fi';
-import { getLessons } from '@/lib/api/getlessons';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import { authClient } from '@/lib/auth-client';
 
 export default function PublicLessonDetailPage() {
   const params = useParams();
@@ -32,16 +32,32 @@ export default function PublicLessonDetailPage() {
   const [reportReason, setReportReason] = useState('Inappropriate Content');
   const [viewsCount] = useState(Math.floor(Math.random() * 10000));
 
-  const [currentUser] = useState({ isPremium: false, id: 'user_123' });
+  const { data: session, isPending } = authClient.useSession();
+
+  // useMemo ব্যবহার করে অবজেক্ট রেফারেন্স লুপ হওয়া বন্ধ করা হলো
+  const currentUserId = useMemo(() => session?.user?.id || null, [session]);
+  const isPremiumUser = useMemo(
+    () => session?.user?.isPremium || false,
+    [session],
+  );
 
   useEffect(() => {
     if (!params || !params.id) return;
+    if (isPending) return;
 
     const fetchSingleLesson = async () => {
       try {
         setLoading(true);
-        const data = await getLessons(params.id);
+        const userIdParam = currentUserId ? `?userId=${currentUserId}` : '';
+        const res = await fetch(
+          `http://localhost:5000/lessons/${params.id}${userIdParam}`,
+        );
+        if (!res.ok) throw new Error('Network error pulling source');
+        const data = await res.json();
+
         setLesson(data);
+        setIsLiked(data.hasLiked || false);
+        setIsFavorited(data.hasFavorited || false);
 
         setComments([
           {
@@ -65,28 +81,72 @@ export default function PublicLessonDetailPage() {
     };
 
     fetchSingleLesson();
-  }, [params.id]);
+  }, [params.id, currentUserId, isPending]);
 
-  const handleLikeToggle = () => {
-    setIsLiked(!isLiked);
-    if (lesson) {
-      setLesson({
-        ...lesson,
-        likesCount: isLiked
-          ? (lesson.likesCount || 0) - 1
-          : (lesson.likesCount || 0) + 1,
-      });
+  const handleLikeToggle = async () => {
+    if (!currentUserId) {
+      toast.error('Please log in to like this lesson');
+      return;
     }
-    toast.success(
-      isLiked ? 'Removed from liked lessons' : 'Lesson liked successfully!',
-    );
+
+    try {
+      const res = await fetch(
+        `http://localhost:5000/lessons/${lesson._id}/like`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUserId }),
+        },
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        setIsLiked(data.liked);
+        setLesson(prev => ({
+          ...prev,
+          likesCount: data.liked
+            ? (prev.likesCount || 0) + 1
+            : Math.max(0, (prev.likesCount || 0) - 1),
+        }));
+        toast.success(data.message || 'Updated likes');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not process like interaction.');
+    }
   };
 
-  const handleFavoriteToggle = () => {
-    setIsFavorited(!isFavorited);
-    toast.success(
-      isFavorited ? 'Removed from Favorites' : 'Saved to Favorites List!',
-    );
+  const handleFavoriteToggle = async () => {
+    if (!currentUserId) {
+      toast.error('Please log in to save favorites');
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `http://localhost:5000/lessons/${lesson._id}/favorite`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUserId }),
+        },
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        setIsFavorited(data.favorited);
+        setLesson(prev => ({
+          ...prev,
+          favoritesCount: data.favorited
+            ? (prev.favoritesCount || 0) + 1
+            : Math.max(0, (prev.favoritesCount || 0) - 1),
+        }));
+        toast.success(data.message || 'Updated favorites');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not process favorite interaction.');
+    }
   };
 
   const handleReportSubmit = e => {
@@ -101,7 +161,7 @@ export default function PublicLessonDetailPage() {
 
     const addedComment = {
       _id: Date.now().toString(),
-      userName: 'Current User',
+      userName: session?.user?.name || 'Current User',
       text: newComment,
       createdAt: new Date(),
     };
@@ -111,7 +171,7 @@ export default function PublicLessonDetailPage() {
     toast.success('Reflection posted successfully!');
   };
 
-  if (loading) {
+  if (isPending || loading) {
     return (
       <div className="min-h-screen bg-[#0A0908] flex items-center justify-center font-mono text-[#E5A93C]">
         Loading Digital Wisdom Matrix...
@@ -133,14 +193,12 @@ export default function PublicLessonDetailPage() {
     );
   }
 
-  const isBlurLocked =
-    lesson.accessLevel === 'Premium' && !currentUser.isPremium;
+  const isBlurLocked = lesson.accessLevel === 'Premium' && !isPremiumUser;
 
   return (
     <div className="min-h-screen bg-[#0A0908] text-[#D1C7BD] font-sans antialiased selection:bg-[#E5A93C] selection:text-black">
       {/* HERO BANNER SECTION */}
       <div className="relative w-full border-b border-[#1A1612] bg-[#0F0E0C]">
-        {/* Top Navbar Simulation */}
         <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between border-b border-[#1A1612]/50">
           <button
             onClick={() => router.back()}
@@ -153,7 +211,6 @@ export default function PublicLessonDetailPage() {
           </div>
         </div>
 
-        {/* Hero Headline Box */}
         <div className="max-w-4xl mx-auto px-6 pt-14 pb-12 text-center md:text-left space-y-4">
           <div className="flex justify-center md:justify-start gap-2">
             <span className="text-[9px] font-mono uppercase tracking-widest bg-[#1A150E] border border-[#E5A93C]/30 px-2.5 py-1 text-[#E5A93C]">
@@ -175,9 +232,7 @@ export default function PublicLessonDetailPage() {
 
       {/* CORE TWO-COLUMN CONTENT LAYOUT */}
       <div className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
-        {/* LEFT COLUMN: ARTICLE CONTENT & INTERACTIONS */}
         <div className="lg:col-span-2 space-y-10">
-          {/* Main Visual Image Frame */}
           <div className="w-full aspect-[16/10] max-h-[480px] overflow-hidden border border-[#1A1612] bg-[#000000] flex items-center justify-center">
             <img
               src={
@@ -189,7 +244,6 @@ export default function PublicLessonDetailPage() {
             />
           </div>
 
-          {/* Prose Text Content */}
           <div className={`relative ${isBlurLocked ? 'p-1' : ''}`}>
             <div
               className={`prose prose-invert max-w-none text-[15px] text-[#BAB0A3] leading-relaxed space-y-6 font-serif ${isBlurLocked ? 'blur-lg select-none pointer-events-none max-h-56 overflow-hidden' : ''}`}
@@ -198,39 +252,21 @@ export default function PublicLessonDetailPage() {
                 "The happiness of your life depends upon the quality of your
                 thoughts." — Marcus Aurelius
               </blockquote>
-
               <p className="first-letter:text-5xl first-letter:font-serif first-letter:text-[#E5A93C] first-letter:mr-3 first-letter:float-left first-letter:font-normal">
                 {lesson.description ||
-                  'Silence is not merely the absence of sound, but the presence of focus. In our contemporary digital landscape, where every pixel and notification competes for a fragment of our cognitive load, the deliberate cultivation of silence becomes an elite performance tool.'}
-              </p>
-
-              <h3 className="text-xl font-serif text-[#F4EFEA] font-normal pt-4">
-                The Dichotomy of Control
-              </h3>
-              <p>
-                By housing our energy solely on our own actions, intentions, and
-                judgments, we find a source of unshakable peace. This isn't
-                blind positivity; it's the ultimate efficiency of the human
-                mind. Most of our stress arises from trying to control things
-                that are external—other people's opinions, the weather, the
-                outcome of a project, or the past.
+                  'Silence is not merely the absence of sound, but the presence of focus...'}
               </p>
             </div>
 
-            {/* Premium Content Wall Protective Overlay */}
             {isBlurLocked && (
               <div className="absolute inset-0 bg-[#0A0908]/85 flex flex-col items-center justify-center text-center p-8 border border-[#E5A93C]/20">
                 <FiLock className="text-[#E5A93C] text-3xl mb-3" />
                 <h4 className="font-serif text-lg text-[#F4EFEA] tracking-wider uppercase">
                   Expand Your Mind
                 </h4>
-                <p className="text-xs text-[#8C8275] max-w-xs my-3 font-mono leading-relaxed">
-                  Access the full premium digital series and exclusive private
-                  community forums.
-                </p>
                 <Link
                   href="/pricing"
-                  className="bg-[#E5A93C] text-black text-xs px-8 py-3 font-mono uppercase tracking-widest hover:bg-[#D4982B] transition-all font-semibold"
+                  className="bg-[#E5A93C] text-black text-xs px-8 py-3 font-mono uppercase tracking-widest hover:bg-[#D4982B] transition-all font-semibold mt-4"
                 >
                   Unlock Premium
                 </Link>
@@ -238,7 +274,6 @@ export default function PublicLessonDetailPage() {
             )}
           </div>
 
-          {/* ACTION TOOLBAR BOX */}
           <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-[#1A1612]">
             <div className="flex items-center gap-2">
               <button
@@ -246,20 +281,16 @@ export default function PublicLessonDetailPage() {
                 className={`flex items-center gap-2 px-4 py-2 text-[11px] font-mono tracking-wider border transition-colors ${isLiked ? 'bg-[#E5A93C] text-black border-[#E5A93C]' : 'border-[#1A1612] hover:border-[#E5A93C]/40 text-[#D1C7BD]'}`}
               >
                 <FiHeart className={isLiked ? 'fill-current' : ''} />{' '}
-                {lesson.likesCount || 120} LIKES
+                {lesson.likesCount || 0} LIKES
               </button>
               <button
                 onClick={handleFavoriteToggle}
                 className={`flex items-center gap-2 px-4 py-2 text-[11px] font-mono tracking-wider border transition-colors ${isFavorited ? 'bg-[#E5A93C] text-black border-[#E5A93C]' : 'border-[#1A1612] hover:border-[#E5A93C]/40 text-[#D1C7BD]'}`}
               >
                 <FiBookmark className={isFavorited ? 'fill-current' : ''} />{' '}
-                SAVE LESSON
-              </button>
-              <button className="p-2 border border-[#1A1612] text-[#8C8275] hover:text-[#E5A93C] transition-colors">
-                <FiShare2 className="text-xs" />
+                {isFavorited ? 'SAVED' : 'SAVE LESSON'}
               </button>
             </div>
-
             <button
               onClick={() => setShowReportModal(true)}
               className="flex items-center gap-1.5 text-[10px] font-mono text-[#8C8275] hover:text-red-400 transition-colors tracking-widest"
@@ -268,13 +299,11 @@ export default function PublicLessonDetailPage() {
             </button>
           </div>
 
-          {/* WISDOM EXCHANGE COMMENTS SECTION */}
+          {/* COMMENTS */}
           <div className="space-y-6 pt-4">
             <h3 className="font-serif text-lg text-[#F4EFEA] tracking-wide border-b border-[#1A1612] pb-3 font-medium">
               Wisdom Exchange ({comments.length})
             </h3>
-
-            {/* Comment Form */}
             <form onSubmit={handleCommentSubmit} className="space-y-3">
               <textarea
                 value={newComment}
@@ -291,7 +320,6 @@ export default function PublicLessonDetailPage() {
               </button>
             </form>
 
-            {/* Comments List render */}
             <div className="space-y-4">
               {comments.map(comment => (
                 <div
@@ -313,9 +341,8 @@ export default function PublicLessonDetailPage() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: SIDEBAR METADATA & PROFILE CARDS */}
+        {/* SIDEBAR */}
         <div className="space-y-6 lg:sticky lg:top-6">
-          {/* AUTHOR PROFILE CARD */}
           <div className="bg-[#0F0E0C] border border-[#1A1612] p-6 text-center md:text-left">
             <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
               <img
@@ -328,21 +355,16 @@ export default function PublicLessonDetailPage() {
               />
               <div>
                 <h4 className="font-serif text-md text-[#F4EFEA] font-medium">
-                  {lesson.author?.name || 'Dr. Elias Thorne'}
+                  {lesson.author?.name || 'Anonymous Mentor'}
                 </h4>
                 <span className="text-[9px] font-mono text-[#E5A93C] uppercase tracking-widest block mt-0.5">
-                  MASTER INSTRUCTOR
+                  AUTHOR // CONTRIBUTOR
                 </span>
               </div>
             </div>
-            <p className="text-xs text-[#8C8275] font-serif leading-relaxed font-light mb-5">
-              Elias is a former venture architect turned philosopher,
-              specializing in the intersection of deep-focus and
-              high-performance strategy.
-            </p>
+
             <div className="grid grid-cols-2 gap-4 border-t border-[#1A1612]/60 pt-4 mb-5 text-center">
               <div>
-                {/* Dynamic Author Lesson Count Fixed Here */}
                 <div className="text-sm font-serif text-[#F4EFEA]">
                   {lesson.author?.lessonsCount ?? 0}
                 </div>
@@ -351,133 +373,49 @@ export default function PublicLessonDetailPage() {
                 </div>
               </div>
               <div>
-                <div className="text-sm font-serif text-[#F4EFEA]">18.2k</div>
+                <div className="text-sm font-serif text-[#F4EFEA]">
+                  {lesson.favoritesCount || 0}
+                </div>
                 <div className="text-[8px] font-mono text-[#8C8275] tracking-widest uppercase">
-                  Total Students
+                  Total Saves
                 </div>
               </div>
             </div>
-            <button className="w-full bg-transparent border border-[#E5A93C]/40 text-[#E5A93C] py-2.5 text-[10px] font-mono tracking-widest hover:bg-[#E5A93C] hover:text-black transition-all uppercase font-semibold">
-              Follow Creator
-            </button>
           </div>
 
-          {/* METADATA TIMELINE STATS BOX */}
           <div className="bg-[#0F0E0C] border border-[#1A1612] p-5 space-y-3.5 text-xs font-mono text-[#8C8275]">
             <span className="text-[9px] uppercase tracking-widest block border-b border-[#1A1612] pb-2 text-[#5C544A]">
-              // LESSON METADATA
+              // METADATA
             </span>
             <div className="flex justify-between items-center">
               <span className="flex items-center gap-1.5">
-                <FiCalendar className="text-xs" /> Created:
+                <FiCalendar /> Created:
               </span>
-              <span className="text-[#D1C7BD]">Oct 12, 2023</span>
+              <span className="text-[#D1C7BD]">
+                {lesson.createdAt
+                  ? new Date(lesson.createdAt).toLocaleDateString()
+                  : 'N/A'}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="flex items-center gap-1.5">
-                <FiClock className="text-xs" /> Reading Time:
+                <FiClock /> Reading Time:
               </span>
-              <span className="text-[#D1C7BD]">8 mins</span>
+              <span className="text-[#D1C7BD]">5 mins</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="flex items-center gap-1.5">
-                <FiEye className="text-xs" /> Total Views:
+                <FiEye /> Views:
               </span>
               <span className="text-[#D1C7BD]">
                 {viewsCount.toLocaleString()}
               </span>
             </div>
           </div>
-
-          {/* SIDEBAR CALL TO ACTION (CTA) */}
-          {!currentUser.isPremium && (
-            <div className="bg-gradient-to-b from-[#14120F] to-[#0F0E0C] border border-[#E5A93C]/20 p-6 text-center space-y-3 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-2 text-[#E5A93C]/10 pointer-events-none">
-                <FiLock className="text-5xl" />
-              </div>
-              <h5 className="font-serif text-sm text-[#F4EFEA] uppercase tracking-wider">
-                Unlock Mastery
-              </h5>
-              <p className="text-[11px] text-[#8C8275] font-serif leading-relaxed font-light">
-                Get access to 100+ exclusive deep-dives, interactive workshops,
-                and a private community of learners.
-              </p>
-              <Link
-                href="/pricing"
-                className="block w-full bg-[#E5A93C] text-black text-[10px] py-3 font-mono uppercase tracking-widest hover:bg-[#D4982B] transition-all font-bold"
-              >
-                Upgrade to Pro
-              </Link>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* FOOTER RELATED LESSONS MATRIX GRID */}
-      <div className="max-w-6xl mx-auto px-6 pt-12 border-t border-[#1A1612] mt-12 pb-20">
-        <div className="flex justify-between items-baseline mb-8">
-          <div>
-            <h2 className="font-serif text-xl text-[#F4EFEA] tracking-wide font-normal">
-              Similar Lessons
-            </h2>
-            <p className="text-[10px] text-[#8C8275] font-mono uppercase tracking-widest mt-1">
-              Recommended based on your interest
-            </p>
-          </div>
-          <Link
-            href="/public-lessons"
-            className="text-[10px] font-mono text-[#E5A93C] hover:underline uppercase tracking-widest"
-          >
-            View Exploration Map →
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            {
-              title: 'Finding Stillness in Chaos',
-              cat: 'EQUANIMITY',
-              img: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?q=80&w=400',
-            },
-            {
-              title: 'The Precision of Habits',
-              cat: 'DISCIPLINE',
-              img: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?q=80&w=400',
-            },
-            {
-              title: 'Stripping the Unnecessary',
-              cat: 'CLARITY',
-              img: 'https://images.unsplash.com/photo-1455849318743-b2233052fcff?q=80&w=400',
-            },
-          ].map((item, index) => (
-            <div
-              key={index}
-              className="group cursor-pointer bg-[#0F0E0C] border border-[#1A1612] hover:border-[#E5A93C]/30 transition-all duration-300 flex flex-col justify-between overflow-hidden"
-            >
-              <div className="w-full aspect-[16/10] overflow-hidden bg-black relative border-b border-[#1A1612]">
-                <img
-                  src={item.img}
-                  alt={item.title}
-                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500 brightness-90"
-                />
-                <span className="absolute top-3 left-3 text-[8px] font-mono uppercase tracking-widest bg-black/70 text-[#E5A93C] px-2 py-0.5 border border-[#E5A93C]/20">
-                  {item.cat}
-                </span>
-              </div>
-              <div className="p-4 space-y-2">
-                <h3 className="font-serif text-sm text-[#F4EFEA] line-clamp-1 group-hover:text-[#E5A93C] transition-colors font-medium">
-                  {item.title}
-                </h3>
-                <div className="pt-2 border-t border-[#1A1612]/60 flex items-center gap-1.5 text-[9px] font-mono text-[#8C8275] tracking-wider uppercase">
-                  <FiUser /> By Mentor
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* REPORT MODAL COMPONENT */}
+      {/* REPORT MODAL */}
       {showReportModal && (
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
           <div className="bg-[#0F0E0C] border border-[#1A1612] max-w-sm w-full p-6 space-y-4">

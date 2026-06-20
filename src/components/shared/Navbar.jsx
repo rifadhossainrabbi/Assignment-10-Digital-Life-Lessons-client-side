@@ -142,7 +142,7 @@ const Navbar = () => {
                     </p>
                   </div>
                   <Link
-                    href="/dashboard/user/profile"
+                    href="/dashboard/profile/user-profile"
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center px-5 py-2.5 text-sm text-gray-300 hover:bg-[#d4af37] hover:text-black transition-all"
                   >
