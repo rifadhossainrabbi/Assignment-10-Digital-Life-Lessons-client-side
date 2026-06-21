@@ -34,6 +34,7 @@ const RegisterPage = () => {
       email,
       password,
       image,
+      role: 'user',
     });
 
     if (error) {

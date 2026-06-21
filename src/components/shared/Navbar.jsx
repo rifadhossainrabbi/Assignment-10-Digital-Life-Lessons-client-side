@@ -22,6 +22,7 @@ const Navbar = () => {
   const { data: session, isPending } = authClient.useSession();
   const isLoggedIn = !!session;
   const user = session?.user;
+  console.log('user info', user)
   const isPremium = user?.isPremium || false;
 
   useEffect(() => {
