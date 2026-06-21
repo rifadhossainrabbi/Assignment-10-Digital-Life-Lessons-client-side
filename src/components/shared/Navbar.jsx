@@ -41,12 +41,9 @@ const Navbar = () => {
   const navLinks = [
     { name: 'Home', href: '/' },
     { name: 'Public Lessons', href: '/public-lessons' },
+    { name: 'Add Lesson', href: '/dashboard/user/add-lesson' },
+    { name: 'My Lessons', href: '/dashboard/user/my-lessons' },
   ];
-
-  if (isLoggedIn) {
-    navLinks.push({ name: 'Add Lesson', href: '/dashboard/user/add-lesson' });
-    navLinks.push({ name: 'My Lessons', href: '/dashboard/user/my-lessons' });
-  }
 
   if (isLoggedIn && !isPremium) {
     navLinks.push({ name: 'Pricing', href: '/pricing' });
@@ -96,15 +93,9 @@ const Navbar = () => {
             <div className="flex items-center space-x-3 md:space-x-5">
               <Link
                 href="/signin"
-                className="text-gray-400 hover:text-[#d4af37] text-xs md:text-sm font-medium transition-all"
-              >
-                Login
-              </Link>
-              <Link
-                href="/signup"
                 className="bg-[#d4af37] text-black px-4 py-1.5 md:px-5 md:py-2 rounded-md text-xs md:text-sm font-bold hover:bg-[#f2c94c] transition-all"
               >
-                Signup
+                Login
               </Link>
             </div>
           ) : (
@@ -113,14 +104,23 @@ const Navbar = () => {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center space-x-2 md:space-x-3 group cursor-pointer focus:outline-none bg-transparent border-none"
               >
-                <div className="w-8 h-8 md:w-9 md:h-9 rounded-full overflow-hidden border border-gray-700 group-hover:border-[#d4af37] transition-all">
-                  <Image
-                    src={user?.image || 'https://i.pravatar.cc/150'}
-                    alt={user?.name || 'User'}
-                    width={36}
-                    height={36}
-                    className="object-cover"
-                  />
+                {/* User Avatar Circle */}
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden border border-gray-700 group-hover:border-[#d4af37] transition-all flex items-center justify-center bg-[#1a1a1a] ring-1 ring-white/5 shadow-inner">
+                  {user?.image ? (
+                    <Image
+                      src={user.image}
+                      alt={user.name || 'User'}
+                      width={40}
+                      height={40}
+                      className="object-cover w-full h-full"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a]">
+                      <span className="text-[13px] md:text-sm font-bold text-[#d4af37] tracking-tight uppercase">
+                        {user?.name ? user.name.slice(0, 2) : '??'}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <span className="text-gray-400 group-hover:text-[#d4af37] text-sm font-medium hidden sm:block">
                   {user?.name?.split(' ')[0] || 'Profile'}
@@ -149,7 +149,7 @@ const Navbar = () => {
                     <Person className="mr-3" width={16} /> Profile
                   </Link>
                   <Link
-                    href="/dashboard/user"
+                    href="/dashboard"
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center px-5 py-2.5 text-sm text-gray-300 hover:bg-[#d4af37] hover:text-black transition-all"
                   >
