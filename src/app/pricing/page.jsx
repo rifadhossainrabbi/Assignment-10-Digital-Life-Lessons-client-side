@@ -25,7 +25,7 @@ export default function PricingPage() {
 
     try {
       const response = await fetch(
-        'http://localhost:5000/create-checkout-session',
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/create-checkout-session`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

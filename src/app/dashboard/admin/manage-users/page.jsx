@@ -18,7 +18,9 @@ const ManageUsersByAdminPage = () => {
 
   const getUsers = async () => {
     try {
-      const response = await fetch('http://localhost:5000/admin/users');
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/users`,
+      );
       const data = await response.json();
       setUsers(data);
       setLoading(false);
@@ -32,7 +34,7 @@ const ManageUsersByAdminPage = () => {
     if (!window.confirm(`Promote ${user.name} to Admin?`)) return;
     try {
       const response = await fetch(
-        `http://localhost:5000/admin/users/role/${user._id}`,
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/users/role/${user._id}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -58,7 +60,7 @@ const ManageUsersByAdminPage = () => {
     if (!window.confirm(`Delete ${user.name}'s account?`)) return;
     try {
       const response = await fetch(
-        `http://localhost:5000/admin/users/${user._id}`,
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/users/${user._id}`,
         {
           method: 'DELETE',
         },
