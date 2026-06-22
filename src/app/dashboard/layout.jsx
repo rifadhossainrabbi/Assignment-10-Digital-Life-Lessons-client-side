@@ -1,8 +1,9 @@
-import DashboardSidebar from '@/components/Dashboard/DashboardSidebar';
+// import DashboardSidebar from '@/components/Dashboard/DashboardSidebar';
 import React from 'react';
 import { auth } from '@/lib/auth'; // আপনার Better Auth-এর মেইন সার্ভার ইনস্ট্যান্স পাথটি দিন
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation'; // এখানে notFound বাদ দিয়ে শুধু redirect রাখলেই হবে
+import DashboardSidebar from '@/components/Dashboard/DashboardSidebar';
 
 const DashboardLayout = async ({ children }) => {
   // Better Auth-এ সার্ভার কম্পোনেন্ট থেকে সেশন রিড করার নিয়ম
