@@ -151,24 +151,33 @@ export default function PublicLessonDetailPage() {
     }
   };
 
-  const handleReport = async () => {
+  // Function in PublicLessonDetailPage
+  const handleReport = async (selectedReason, details) => {
+    if (!session?.user) return toast.error('Please login to report');
+
     try {
-      await fetch(
+      const response = await fetch(
         `${process.env.NEXT_PUBLIC_SERVER_URL}/lessons/${lesson._id}/report`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: currentUserId,
+            userId: session.user.id,
             userEmail: session.user.email,
-            reason: reportReason,
+            reason: selectedReason,
+            additionalDetails: details, // Requirement: Text field
+            lessonTitle: lesson.title,
+            timestamp: new Date(),
           }),
         },
       );
-      toast.success('Report submitted successfully');
-      setShowReportModal(false);
+
+      if (response.ok) {
+        toast.success('Content flagged for moderator review');
+        setShowReportModal(false);
+      }
     } catch (err) {
-      toast.error('Report submission failed');
+      toast.error('Network failure');
     }
   };
 
