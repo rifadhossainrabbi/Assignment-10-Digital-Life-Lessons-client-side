@@ -1,150 +1,222 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { redirect, useRouter } from 'next/navigation'; // redirect এবং useRouter ইমপোর্ট করা হয়েছে
-import { FiBookOpen, FiHeart, FiBookmark } from 'react-icons/fi';
-import DashboardChart from '@/components/Dashboard/DashboardChart';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import {
+  FiPlus,
+  FiBook,
+  FiHeart,
+  FiStar,
+  FiArrowRight,
+  FiActivity,
+} from 'react-icons/fi';
 import { authClient } from '@/lib/auth-client';
+import DashboardChart from '@/components/Dashboard/DashboardChart';
 
-export default function DashboardPage() {
-  const router = useRouter(); // নেভিগেশন বাটনের জন্য
-  const { data: sessionData, isPending } = authClient.useSession();
+export default function UserDashboardHome() {
+  const router = useRouter();
+  const { data: session, isPending } = authClient.useSession();
 
+  const [userLessons, setUserLessons] = useState([]);
   const [stats, setStats] = useState({
     totalCreated: 0,
-    totalLiked: 0,
-    totalFavs: 0,
+    totalSaved: 0,
+    totalLikes: 0,
   });
-  const [userLessons, setUserLessons] = useState([]);
-  const [apiLoading, setApiLoading] = useState(false);
-
-  if (!isPending && !sessionData) {
-    redirect('/signin');
-  }
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // সেশন না থাকলে বা লোডিং চললে ডেটা ফেচ করার দরকার নেই
-    if (isPending || !sessionData?.user) return;
+    // Safety check for session
+    if (isPending || !session?.user) return;
 
-    const currentUserId = sessionData.user.id;
     const serverUrl =
       process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000';
+    const userId = session.user.id;
 
-    setApiLoading(true);
+    const fetchDashboardData = async () => {
+      try {
+        // Fetching data from your existing backend routes
+        const [lessonsRes, favoritesRes] = await Promise.all([
+          fetch(`${serverUrl}/lessons/user/${userId}`).then(res => res.json()),
+          fetch(`${serverUrl}/favorites/${userId}`).then(res => res.json()),
+        ]);
 
-    // মাল্টিপল এপিআই কল একসাথে হ্যান্ডেল করা
-    Promise.all([
-      fetch(`${serverUrl}/user-stats/${currentUserId}`).then(res => res.json()),
-      fetch(`${serverUrl}/user-lessons/${currentUserId}`).then(res =>
-        res.json(),
-      ),
-    ])
-      .then(([statsData, lessonsData]) => {
-        setStats(statsData || { totalCreated: 0, totalLiked: 0, totalFavs: 0 });
-        setUserLessons(lessonsData || []);
-      })
-      .catch(err => console.error('Dashboard Fetch Error:', err))
-      .finally(() => setApiLoading(false));
-  }, [sessionData, isPending]);
+        // Calculate total likes accumulated from all lessons
+        const accumulatedLikes = lessonsRes.reduce(
+          (acc, curr) => acc + (curr.likesCount || 0),
+          0,
+        );
 
-  // মেইন লোডিং স্টেট
-  if (isPending) {
-    return (
-      <div className="min-h-screen bg-[#0A0908] flex items-center justify-center font-mono text-[#E5A93C]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-t-transparent border-[#E5A93C] rounded-full animate-spin"></div>
-          <span className="tracking-widest uppercase text-xs">
-            Initializing Session...
-          </span>
-        </div>
-      </div>
-    );
-  }
+        setStats({
+          totalCreated: lessonsRes.length,
+          totalSaved: favoritesRes.length,
+          totalLikes: accumulatedLikes,
+        });
+
+        setUserLessons(lessonsRes);
+      } catch (err) {
+        console.error('Dashboard Data Fetch Error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [session, isPending]);
+
+  if (isPending || loading) return <LoadingUI />;
 
   return (
-    <div className="min-h-screen bg-[#0A0908] text-[#D1C7BD] p-4 md:p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* Welcome Header */}
-        <div className="bg-[#0F0E0C] border border-[#211E1A] p-6 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-serif text-[#F4EFEA]">
-              Welcome,{' '}
-              <span className="text-[#E5A93C]">{sessionData?.user?.name}</span>
-            </h1>
-            <p className="text-[10px] text-[#8C8275] font-mono mt-1 uppercase tracking-widest">
-              Digital Sanctuary Status:{' '}
-              <span className="text-green-500">Online</span>
+    <div className="space-y-8 p-4 md:p-6 text-[#D1C7BD] min-h-screen bg-[#0A0908]">
+      {/* Requirement: Welcome Header & Quick Action */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h1 className="text-3xl font-serif text-[#F4EFEA]">
+            Welcome back, {session?.user?.name.split(' ')[0]}
+          </h1>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            <p className="text-[10px] text-[#8C8275] font-mono uppercase tracking-[0.2em]">
+              Sanctuary Active • {session?.user?.role}
             </p>
           </div>
-          <button
-            onClick={() => router.push('/dashboard/user/add-lesson')}
-            className="bg-[#E5A93C] hover:bg-[#d49a2d] text-black px-6 py-3 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-amber-500/10"
-          >
-            + Create New Lesson
-          </button>
-        </div>
+        </motion.div>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          <StatCard
-            title="Lessons Created"
-            value={stats.totalCreated}
-            icon={<FiBookOpen size={20} />}
-            color="text-[#E5A93C]"
-          />
-          <StatCard
-            title="Total Appreciation"
-            value={stats.totalLiked}
-            icon={<FiHeart size={20} />}
-            color="text-rose-400"
-          />
-          <StatCard
-            title="Wisdom Preserved"
-            value={stats.totalFavs}
-            icon={<FiBookmark size={20} />}
-            color="text-sky-400"
-          />
-        </div>
+        <button
+          onClick={() => router.push('/dashboard/user/add-lesson')}
+          className="group flex items-center gap-2 bg-[#E5A93C] text-black px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#F4EFEA] transition-all shadow-xl shadow-amber-900/10"
+        >
+          <FiPlus className="group-hover:rotate-90 transition-transform" /> New
+          Life Lesson
+        </button>
+      </div>
 
-        {/* Analytics Section */}
-        <div className="bg-[#0F0E0C] border border-[#1A1612] p-6 rounded-xl overflow-hidden">
-          <div className="flex items-center gap-2 mb-6">
-            <div className="w-2 h-2 rounded-full bg-[#E5A93C]"></div>
-            <h2 className="text-xs font-mono uppercase text-[#8C8275] tracking-widest">
-              Growth Analytics
+      {/* Requirement: Total Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <StatCard
+          label="Lessons Created"
+          value={stats.totalCreated}
+          icon={<FiBook />}
+          color="text-amber-500"
+        />
+        <StatCard
+          label="Wisdom Saved"
+          value={stats.totalSaved}
+          icon={<FiStar />}
+          color="text-sky-400"
+        />
+        <StatCard
+          label="Total Appreciation"
+          value={stats.totalLikes}
+          icon={<FiHeart />}
+          color="text-rose-400"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Requirement: Analytics Chart Section */}
+        <div className="lg:col-span-2 space-y-4 bg-[#0F0E0C] border border-[#1A1612] p-6 rounded-2xl">
+          <div className="flex items-center gap-2 mb-4">
+            <FiActivity className="text-[#E5A93C]" />
+            <h2 className="text-xs font-mono text-[#8C8275] uppercase tracking-widest">
+              Growth & Engagement Analytics
             </h2>
           </div>
+          <DashboardChart mockLessonsData={userLessons} />
+        </div>
 
-          {apiLoading ? (
-            <div className="h-[300px] w-full bg-[#141311] animate-pulse rounded-lg flex items-center justify-center text-[10px] font-mono text-[#26221C]">
-              GENERATING ANALYTICS...
+        {/* Requirement: Recently Added Lessons & Quick Shortcuts */}
+        <div className="space-y-6">
+          <div className="bg-[#0F0E0C] border border-[#1A1612] p-6 rounded-2xl">
+            <h3 className="text-xs font-mono text-[#8C8275] uppercase tracking-widest mb-6 pb-2 border-b border-white/5">
+              Recently Added
+            </h3>
+            <div className="space-y-5">
+              {userLessons.length > 0 ? (
+                userLessons.slice(0, 4).map(lesson => (
+                  <div key={lesson._id} className="group cursor-pointer">
+                    <p className="text-sm text-[#F4EFEA] font-serif group-hover:text-[#E5A93C] transition-colors truncate mb-1">
+                      {lesson.title}
+                    </p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-[#524B41] font-mono">
+                        {new Date(lesson.createdAt).toLocaleDateString()}
+                      </span>
+                      <span className="text-[9px] bg-white/5 px-2 py-0.5 rounded text-[#8C8275] uppercase tracking-tighter">
+                        {lesson.category}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-[#524B41] italic">
+                  No records in the archive.
+                </p>
+              )}
             </div>
-          ) : (
-            <DashboardChart mockLessonsData={userLessons} />
-          )}
+
+            <button
+              onClick={() => router.push('/dashboard/user/my-lessons')}
+              className="w-full mt-8 flex items-center justify-center gap-2 text-[10px] font-bold text-[#8C8275] hover:text-[#E5A93C] transition-all py-3 border border-white/5 rounded-xl hover:bg-white/5"
+            >
+              Explore Full Archive <FiArrowRight />
+            </button>
+          </div>
+
+          {/* Quick Shortcuts */}
+          <div className="bg-[#0F0E0C] border border-[#1A1612] p-4 rounded-2xl grid grid-cols-2 gap-2">
+            <ShortcutLink label="Profile" href="/dashboard/profile" />
+            <ShortcutLink label="Settings" href="/dashboard/settings" />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// Reusable StatCard Component
-function StatCard({ title, value, icon, color }) {
+// Reusable Stat Card Component
+function StatCard({ label, value, icon, color }) {
   return (
-    <div className="bg-[#0F0E0C] border border-[#1A1612] p-6 rounded-xl flex items-center justify-between group hover:border-[#E5A93C]/20 transition-all">
+    <div className="bg-[#0F0E0C] border border-[#1A1612] p-6 rounded-2xl flex items-center justify-between group hover:border-[#E5A93C]/30 transition-all">
       <div>
-        <p className="text-[10px] font-mono text-[#8C8275] uppercase tracking-tighter">
-          {title}
+        <p className="text-[10px] font-mono text-[#8C8275] uppercase tracking-[0.2em]">
+          {label}
         </p>
         <p className="text-4xl font-serif text-[#F4EFEA] mt-2 font-bold group-hover:text-[#E5A93C] transition-colors">
-          {value || 0}
+          {value}
         </p>
       </div>
       <div
-        className={`p-4 bg-[#1A150E] border border-white/5 rounded-2xl ${color} shadow-inner shadow-black/40`}
+        className={`p-4 bg-white/[0.03] border border-white/5 rounded-2xl ${color} shadow-inner`}
       >
         {icon}
       </div>
+    </div>
+  );
+}
+
+// Reusable Shortcut Component
+function ShortcutLink({ label, href }) {
+  return (
+    <a
+      href={href}
+      className="bg-white/5 p-3 rounded-xl text-center text-[10px] font-mono uppercase tracking-widest text-[#8C8275] hover:text-[#E5A93C] transition-all"
+    >
+      {label}
+    </a>
+  );
+}
+
+// Loading Skeleton
+function LoadingUI() {
+  return (
+    <div className="h-screen flex flex-col items-center justify-center gap-4 bg-[#0A0908] text-[#524B41] font-mono text-[10px] uppercase tracking-[0.3em]">
+      <div className="w-10 h-10 border-2 border-t-transparent border-[#E5A93C] rounded-full animate-spin"></div>
+      Synchronizing Sanctuary Data...
     </div>
   );
 }
