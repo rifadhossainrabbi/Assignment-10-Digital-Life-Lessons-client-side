@@ -172,6 +172,7 @@ export default function PricingPage() {
             </ul>
           </div>
 
+          {/* Plan action */}
           <form action="/api/checkout_sessions" method="POST">
             <section>
               <button
