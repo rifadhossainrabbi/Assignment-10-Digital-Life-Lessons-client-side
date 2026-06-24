@@ -2,272 +2,289 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FiCheck, FiX, FiZap, FiAward, FiLock } from 'react-icons/fi';
+import {
+  Check,
+  Minus,
+  Zap,
+  Crown,
+  HelpCircle,
+  ArrowRight,
+  Star,
+} from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import { useSession } from '@/lib/auth-client'; // আপনার Better-Auth ক্লায়েন্ট পাথ
+
+// Dummy Session - Replace with your actual Better-Auth logic (e.g., useSession())
+const mockSession = {
+  user: { isPremium: false, email: 'candidate@example.com', name: 'User' },
+  status: 'authenticated',
+};
 
 export default function PricingPage() {
-  const { data: session, status } = useSession();
+  // Replace with: const { data: session, status } = useSession();
+  const { user, status } = { user: mockSession.user, status: 'authenticated' };
   const [isRedirecting, setIsRedirecting] = useState(false);
-
-  const user = session?.user;
   const isPremiumUser = user?.isPremium === true;
 
-  // Stripe Checkout Session Handle Function
   const handleUpgrade = async () => {
-    if (!user) {
-      toast.error('Please log in to initiate the upgrade sequence.');
-      return;
-    }
-
     setIsRedirecting(true);
-    const checkoutToast = toast.loading('Connecting secure Stripe gateway...');
+    const loadingToast = toast.loading(
+      'Connecting to Stripe secure gateway...',
+    );
 
     try {
+      // Your Backend Route: /create-checkout-session
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SERVER_URL}/create-checkout-session`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: user.id || user.uid,
-            email: user.email,
-          }),
+          body: JSON.stringify({ userId: user?.id, email: user?.email }),
         },
       );
-
       const data = await response.json();
-
       if (data.url) {
-        // Stripe Checkout পেইজে রিডাইরেক্ট
         window.location.href = data.url;
       } else {
-        throw new Error(data.message || 'Stripe initialization failed.');
+        throw new Error('Initialization failed');
       }
     } catch (error) {
-      console.error('Stripe Error:', error);
-      toast.error(error.message || 'Payment gateway connection refused.', {
-        id: checkoutToast,
+      toast.error('Payment gateway error. Please try again.', {
+        id: loadingToast,
       });
-    } finally {
       setIsRedirecting(false);
     }
   };
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-[#0F0D0A] flex items-center justify-center font-mono text-[#E5A93C]">
-        Loading tier matrices...
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-[#0F0D0A] text-[#E6DFD3] p-6 md:p-12 font-sans antialiased selection:bg-[#E5A93C] selection:text-black">
-      <Toaster
-        toastOptions={{
-          style: {
-            background: '#14110C',
-            color: '#E6DFD3',
-            border: '1px solid #231E15',
-            borderRadius: '0px',
-          },
-        }}
-      />
+    <div className="min-h-screen bg-[#09090B] text-zinc-100 font-sans selection:bg-indigo-500/30 pb-20">
+      <Toaster position="top-center" />
 
-      {/* HEADER SECTION */}
-      <div className="max-w-6xl mx-auto mb-16 text-center">
-        <p className="text-[10px] font-mono text-[#E5A93C]/60 uppercase tracking-[0.3em] mb-2">
-          Membership Matrices
-        </p>
-        <h1 className="text-4xl font-serif text-[#E6DFD3] tracking-wide mb-4">
-          Elevate Your Consciousness
-        </h1>
-        <p className="text-xs text-[#9C9485] max-w-md mx-auto leading-relaxed">
-          Unlock unlimited wisdom storage and stream premium life formulas
-          shared by vetted tier thinkers.
-        </p>
+      {/* --- HERO SECTION --- */}
+      <div className="pt-24 pb-16 px-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <p className="text-indigo-500 font-mono text-[10px] tracking-[0.3em] uppercase mb-3">
+            Upgrade Matrix
+          </p>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+            Investment in your growth, <br />
+            <span className="text-indigo-500 italic">simplified.</span>
+          </h1>
+          <p className="text-zinc-400 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
+            Preserve your personal wisdom and gain access to the community's
+            deepest insights. Choose the plan that fits your learning journey.
+          </p>
+        </motion.div>
       </div>
 
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-        {/* LEFT CARD: PLAN OPTIONS & CHECKOUT BANNER (4-Cols) */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-[#14110C] border border-[#231E15] p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[460px]">
-            {/* Background Accent Lines */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#E5A93C]/5 blur-3xl rounded-full pointer-events-none" />
-
-            <div>
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-[#E5A93C] bg-[#1C1812] border border-[#2E281D] px-2.5 py-1">
-                    Lifetime Access
-                  </span>
-                  <h2 className="text-3xl font-serif text-[#E6DFD3] tracking-wide mt-4">
-                    Premium ⭐
-                  </h2>
+      {/* --- PRICING CARDS --- */}
+      <div className="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8 mb-24">
+        {/* Free Plan Card */}
+        <motion.div
+          whileHover={{ y: -5 }}
+          className="bg-[#18181B] border border-zinc-800 rounded-2xl p-8 flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-xl font-semibold mb-1">Free Plan</h3>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold">৳০</span>
+                  <span className="text-zinc-500 text-sm">/ forever</span>
                 </div>
-                {isPremiumUser && (
-                  <div className="flex items-center gap-1.5 text-xs text-[#E5A93C] font-mono border border-[#E5A93C]/30 bg-[#E5A93C]/10 px-2.5 py-1 animate-pulse">
-                    <FiAward className="w-3.5 h-3.5" /> Active Tier
-                  </div>
-                )}
               </div>
-
-              <div className="my-8">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-serif tracking-tight text-[#E5A93C]">
-                    ৳১৫০০
-                  </span>
-                  <span className="text-xs text-[#9C9485] font-mono">
-                    / one-time payment
-                  </span>
-                </div>
-                <p className="text-xs text-[#9C9485] mt-3 leading-relaxed">
-                  No subscription models. No friction layers. Pay once, preserve
-                  your wisdom archive permanently.
-                </p>
-              </div>
+              <span className="text-[10px] font-mono text-zinc-500 border border-zinc-800 px-2 py-1 rounded tracking-widest">
+                DEFAULT
+              </span>
             </div>
-
-            {/* CONDITIONAL ACTION BUTTON */}
-            {isPremiumUser ? (
-              <div className="border border-[#2E281D] bg-[#1C1812] p-4 text-center space-y-2">
-                <p className="text-xs font-serif text-[#E5A93C] tracking-wide">
-                  You hold the Master Key
-                </p>
-                <p className="text-[10px] font-mono text-[#9C9485]/60">
-                  All premium entries unlocked inside the browse console.
-                </p>
-              </div>
-            ) : (
-              <motion.button
-                whileHover={{ scale: isRedirecting ? 1 : 1.01 }}
-                whileTap={{ scale: isRedirecting ? 1 : 0.99 }}
-                onClick={handleUpgrade}
-                disabled={isRedirecting}
-                className="w-full bg-[#E5A93C] text-black font-semibold font-serif h-14 text-xs tracking-widest uppercase transition-all duration-300 hover:bg-[#d4982f] flex items-center justify-center gap-2"
-              >
-                <FiZap className="w-4 h-4 fill-current" />{' '}
-                {isRedirecting ? 'REDIRECTING...' : 'CHOOSE PREMIUM PLAN'}
-              </motion.button>
-            )}
+            <p className="text-zinc-400 text-sm mb-8 leading-relaxed">
+              Start documenting your life lessons and browse public community
+              wisdom.
+            </p>
+            <ul className="space-y-4 mb-10">
+              <li className="flex items-center gap-3 text-sm text-zinc-300">
+                <Check className="w-4 h-4 text-zinc-600" /> Create up to 5
+                lessons
+              </li>
+              <li className="flex items-center gap-3 text-sm text-zinc-300">
+                <Check className="w-4 h-4 text-zinc-600" /> Access to all Free
+                public lessons
+              </li>
+              <li className="flex items-center gap-3 text-sm text-zinc-300">
+                <Check className="w-4 h-4 text-zinc-600" /> Personal Dashboard
+                access
+              </li>
+            </ul>
           </div>
+          <button
+            disabled
+            className="w-full py-3 rounded-xl border border-zinc-700 text-zinc-500 text-xs font-semibold tracking-widest uppercase"
+          >
+            Active by Default
+          </button>
+        </motion.div>
+
+        {/* Premium Plan Card */}
+        <motion.div
+          whileHover={{ y: -5 }}
+          className="bg-[#18181B] border-2 border-indigo-500/50 rounded-2xl p-8 relative overflow-hidden shadow-[0_0_40px_-15px_rgba(99,102,241,0.3)] flex flex-col justify-between"
+        >
+          <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
+            Best Value
+          </div>
+          <div>
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-xl font-semibold mb-1 flex items-center gap-2">
+                  Premium{' '}
+                  <Star className="w-4 h-4 fill-indigo-500 text-indigo-500" />
+                </h3>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold">৳১৫০০</span>
+                  <span className="text-zinc-500 text-sm">/ Lifetime</span>
+                </div>
+              </div>
+              <Crown className="w-6 h-6 text-indigo-400" />
+            </div>
+            <p className="text-zinc-400 text-sm mb-8 leading-relaxed">
+              Unlock the full power of personal growth with unlimited storage
+              and premium access.
+            </p>
+            <ul className="space-y-4 mb-10">
+              <li className="flex items-center gap-3 text-sm text-zinc-100">
+                <Check className="w-4 h-4 text-indigo-500" /> Unlimited lesson
+                creation
+              </li>
+              <li className="flex items-center gap-3 text-sm text-zinc-100">
+                <Check className="w-4 h-4 text-indigo-500" /> Create Premium
+                locked content
+              </li>
+              <li className="flex items-center gap-3 text-sm text-zinc-100">
+                <Check className="w-4 h-4 text-indigo-500" /> View all Premium
+                community lessons
+              </li>
+              <li className="flex items-center gap-3 text-sm text-zinc-100">
+                <Check className="w-4 h-4 text-indigo-500" /> Golden Verified
+                Badge
+              </li>
+            </ul>
+          </div>
+
+          <form action="/api/checkout_sessions" method="POST">
+            <section>
+              <button
+                type="submit"
+                role="link"
+                className="w-full py-3 rounded-xl bg-indigo-600 text-white text-xs font-bold tracking-widest uppercase hover:bg-indigo-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                Checkout
+              </button>
+            </section>
+          </form>
+        </motion.div>
+      </div>
+
+      {/* --- COMPARISON TABLE --- */}
+      <div className="max-w-5xl mx-auto px-6 mb-24">
+        <div className="text-center mb-12">
+          <h2 className="text-2xl font-bold mb-2">Compare Features</h2>
+          <p className="text-zinc-500 text-sm italic">
+            Detailed breakdown of platform capabilities.
+          </p>
         </div>
 
-        {/* RIGHT CARD: THE COMPARISON TABLE (7-Cols) */}
-        <div className="lg:col-span-7 bg-[#14110C] border border-[#231E15] p-6 md:p-8 shadow-2xl">
-          <p className="text-xs text-[#9C9485] font-semibold uppercase tracking-wider mb-6">
-            Capability Metrics
-          </p>
+        <div className="bg-[#18181B] border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-zinc-900/50 border-b border-zinc-800">
+                <th className="p-5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                  Capabilities
+                </th>
+                <th className="p-5 text-xs font-semibold text-zinc-400 uppercase tracking-wider text-center">
+                  Free Plan
+                </th>
+                <th className="p-5 text-xs font-semibold text-indigo-400 uppercase tracking-wider text-center">
+                  Premium ⭐
+                </th>
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              {[
+                {
+                  f: 'Total Lessons to Create',
+                  free: 'Up to 5',
+                  prem: 'Unlimited',
+                },
+                { f: 'Premium Lesson Creation', free: false, prem: true },
+                { f: 'Ad-Free Experience', free: false, prem: true },
+                { f: 'Priority Public Listing', free: false, prem: true },
+                { f: 'View Premium Content', free: false, prem: true },
+                { f: 'Community Golden Badge', free: false, prem: true },
+                { f: 'Advanced PDF Export', free: false, prem: true },
+                {
+                  f: 'Weekly Reflection Analytics',
+                  free: 'Basic',
+                  prem: 'Advanced',
+                },
+              ].map((row, i) => (
+                <tr
+                  key={i}
+                  className="border-b border-zinc-800/50 hover:bg-zinc-900/30 transition-colors"
+                >
+                  <td className="p-5 text-zinc-300 font-medium">{row.f}</td>
+                  <td className="p-5 text-center text-zinc-500">
+                    {typeof row.free === 'string' ? (
+                      row.free
+                    ) : (
+                      <Minus className="mx-auto w-4 h-4 opacity-30" />
+                    )}
+                  </td>
+                  <td className="p-5 text-center">
+                    {row.prem === true ? (
+                      <Check className="mx-auto w-5 h-5 text-indigo-500" />
+                    ) : (
+                      <span className="text-indigo-400 font-semibold">
+                        {row.prem}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-[#2E281D] text-[#9C9485]/70 font-mono text-[10px] uppercase tracking-wider">
-                  <th className="py-3 pb-4 font-medium w-1/2">
-                    Core Capability
-                  </th>
-                  <th className="py-3 pb-4 font-medium text-center">
-                    Standard
-                  </th>
-                  <th className="py-3 pb-4 font-medium text-center text-[#E5A93C]">
-                    Premium
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1C1812]">
-                {/* Row 1 */}
-                <tr className="hover:bg-[#1C1812]/40 transition-colors">
-                  <td className="py-3.5 text-[#E6DFD3] font-medium">
-                    Create Public / Private Lessons
-                  </td>
-                  <td className="py-3.5 text-center text-[#9C9485]/60 font-mono">
-                    Max 5 Entries
-                  </td>
-                  <td className="py-3.5 text-center text-[#E5A93C] font-mono font-bold">
-                    Unlimited
-                  </td>
-                </tr>
-
-                {/* Row 2 */}
-                <tr className="hover:bg-[#1C1812]/40 transition-colors">
-                  <td className="py-3.5 text-[#E6DFD3] font-medium">
-                    Premium Lock Engine Access
-                  </td>
-                  <td className="py-3.5 flex justify-center py-3.5">
-                    <FiX className="w-4 h-4 text-red-500/50" />
-                  </td>
-                  <td className="py-3.5 text-center text-emerald-500">
-                    <FiCheck className="w-4 h-4 mx-auto" />
-                  </td>
-                </tr>
-
-                {/* Row 3 */}
-                <tr className="hover:bg-[#1C1812]/40 transition-colors">
-                  <td className="py-3.5 text-[#E6DFD3] font-medium">
-                    Ad-Free Aesthetic Experience
-                  </td>
-                  <td className="py-3.5 text-center text-[#9C9485]/60 font-mono">
-                    With Ads
-                  </td>
-                  <td className="py-3.5 text-center text-[#E5A93C] font-mono">
-                    Pure UI
-                  </td>
-                </tr>
-
-                {/* Row 4 */}
-                <tr className="hover:bg-[#1C1812]/40 transition-colors">
-                  <td className="py-3.5 text-[#E6DFD3] font-medium">
-                    Priority Archive Listing
-                  </td>
-                  <td className="py-3.5 flex justify-center py-3.5">
-                    <FiX className="w-4 h-4 text-red-500/50" />
-                  </td>
-                  <td className="py-3.5 text-center text-emerald-500">
-                    <FiCheck className="w-4 h-4 mx-auto" />
-                  </td>
-                </tr>
-
-                {/* Row 5 */}
-                <tr className="hover:bg-[#1C1812]/40 transition-colors">
-                  <td className="py-3.5 text-[#E6DFD3] font-medium">
-                    Access Locked Community Content
-                  </td>
-                  <td className="py-3.5 flex justify-center py-3.5">
-                    <FiLock className="w-3.5 h-3.5 text-[#9C9485]/40" />
-                  </td>
-                  <td className="py-3.5 text-center text-emerald-500">
-                    <FiCheck className="w-4 h-4 mx-auto" />
-                  </td>
-                </tr>
-
-                {/* Row 6 */}
-                <tr className="hover:bg-[#1C1812]/40 transition-colors">
-                  <td className="py-3.5 text-[#E6DFD3] font-medium">
-                    Verified Identity Golden Badge
-                  </td>
-                  <td className="py-3.5 flex justify-center py-3.5">
-                    <FiX className="w-4 h-4 text-red-500/50" />
-                  </td>
-                  <td className="py-3.5 text-center text-emerald-500">
-                    <FiCheck className="w-4 h-4 mx-auto" />
-                  </td>
-                </tr>
-
-                {/* Row 7 */}
-                <tr className="hover:bg-[#1C1812]/40 transition-colors">
-                  <td className="py-3.5 text-[#E6DFD3] font-medium">
-                    Advanced PDF Export Protocol
-                  </td>
-                  <td className="py-3.5 flex justify-center py-3.5">
-                    <FiX className="w-4 h-4 text-red-500/50" />
-                  </td>
-                  <td className="py-3.5 text-center text-emerald-500">
-                    <FiCheck className="w-4 h-4 mx-auto" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+      {/* --- FAQ SECTION --- */}
+      <div className="max-w-5xl mx-auto px-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 border-t border-zinc-800 pt-16">
+          <div className="md:col-span-1">
+            <h2 className="text-xl font-bold mb-4">Pricing FAQ</h2>
+            <p className="text-zinc-500 text-sm leading-relaxed">
+              Quick answers about the lifetime membership and Stripe billing.
+            </p>
+          </div>
+          <div className="md:col-span-2 space-y-6">
+            <div className="bg-[#18181B] border border-zinc-800 p-6 rounded-xl">
+              <h4 className="font-semibold mb-2 text-sm text-zinc-200">
+                Is the ৳১৫০০ price a monthly subscription?
+              </h4>
+              <p className="text-zinc-400 text-xs leading-relaxed">
+                No. This is a <strong>one-time lifetime payment</strong>. You
+                pay once and keep all premium benefits forever.
+              </p>
+            </div>
+            <div className="bg-[#18181B] border border-zinc-800 p-6 rounded-xl">
+              <h4 className="font-semibold mb-2 text-sm text-zinc-200">
+                How do I access premium lessons?
+              </h4>
+              <p className="text-zinc-400 text-xs leading-relaxed">
+                Once upgraded, any lesson marked as "Premium Access" will
+                automatically unlock for you in the Public Lessons feed.
+              </p>
+            </div>
           </div>
         </div>
       </div>
