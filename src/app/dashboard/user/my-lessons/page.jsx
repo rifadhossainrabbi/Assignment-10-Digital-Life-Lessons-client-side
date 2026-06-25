@@ -51,19 +51,16 @@ export default function MyLessonsPage() {
     fetchMyLessons();
   }, [user?.id]);
 
-  // Open Modal logic
   const openDeleteModal = lesson => {
     setLessonToDelete(lesson);
     setIsDeleteModalOpen(true);
   };
 
-  // Close Modal logic
   const closeDeleteModal = () => {
     setIsDeleteModalOpen(false);
     setLessonToDelete(null);
   };
 
-  // Execute Delete
   const executeDelete = async () => {
     if (!lessonToDelete) return;
     try {
@@ -86,7 +83,6 @@ export default function MyLessonsPage() {
     }
   };
 
-  // Visibility & Access logic remains same...
   const handleToggleVisibility = async (id, current) => {
     const next = current === 'Public' ? 'Private' : 'Public';
     try {
@@ -145,126 +141,185 @@ export default function MyLessonsPage() {
       {/* --- DELETE CONFIRMATION MODAL --- */}
       <AnimatePresence>
         {isDeleteModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeDeleteModal}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/90 backdrop-blur-md"
             />
-            {/* Modal Body */}
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-[#14110C] border border-[#231E15] rounded-2xl p-8 shadow-2xl overflow-hidden"
+              className="relative w-full max-w-md bg-[#14110C] border border-[#231E15] rounded-3xl p-8 shadow-2xl"
             >
-              {/* Artistic Background Element */}
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-500/5 rounded-full blur-3xl" />
-
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-6 border border-red-500/20">
-                  <FiAlertTriangle className="text-red-500 text-2xl" />
+                <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6 border border-red-500/20">
+                  <FiAlertTriangle className="text-red-500 text-3xl" />
                 </div>
-
-                <h3 className="text-2xl font-serif text-[#F4EFEA] mb-2">
+                <h3 className="text-2xl font-serif text-[#F4EFEA] mb-3">
                   Erase Wisdom?
                 </h3>
-                <p className="text-sm text-[#5C544A] font-mono leading-relaxed mb-8">
+                <p className="text-sm text-[#5C544A] leading-relaxed mb-10">
                   You are about to permanently remove{' '}
-                  <span className="text-[#E6DFD3]">
-                    "{lessonToDelete?.title}"
-                  </span>{' '}
-                  from the collective archives. This action is irreversible.
+                  <span className="text-white">"{lessonToDelete?.title}"</span>.
+                  This action cannot be undone.
                 </p>
-
-                <div className="grid grid-cols-2 gap-4 w-full">
+                <div className="flex flex-col sm:flex-row gap-3 w-full">
                   <button
                     onClick={closeDeleteModal}
-                    className="py-3 rounded-xl border border-[#231E15] text-[#5C544A] text-xs font-bold uppercase tracking-widest hover:bg-white/5 transition-all"
+                    className="flex-1 py-4 rounded-xl border border-[#231E15] text-[#5C544A] text-xs font-black uppercase tracking-widest hover:bg-white/5 transition-all"
                   >
-                    Cancele
+                    Cancel
                   </button>
                   <button
                     onClick={executeDelete}
-                    className="py-3 rounded-xl bg-red-600/10 border border-red-600/30 text-red-500 text-xs font-bold uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-[0_0_20px_rgba(220,38,38,0.15)]"
+                    className="flex-1 py-4 rounded-xl bg-red-600 text-white text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg"
                   >
-                    Confirm Erasure
+                    Erase Forever
                   </button>
                 </div>
               </div>
-
-              <button
-                onClick={closeDeleteModal}
-                className="absolute top-4 right-4 text-[#231E15] hover:text-[#E6DFD3] transition-colors"
-              >
-                <FiX size={20} />
-              </button>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      <div className="max-w-7xl mx-auto space-y-10">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-[#231E15] pb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="text-4xl font-serif text-[#E6DFD3]">
-              My Lessons Archive
+            <h1 className="text-3xl md:text-5xl font-serif text-[#E6DFD3]">
+              Archives
             </h1>
-            <p className="text-[10px] text-[#5C544A] mt-2 font-mono uppercase tracking-[0.3em]">
+            <p className="text-[10px] text-[#5C544A] mt-2 font-mono uppercase tracking-[0.4em]">
               Curation of your personal wisdom
             </p>
           </div>
           <Link
             href="/dashboard/user/add-lesson"
-            className="bg-[#E5A93C] text-black px-8 py-3 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-white transition-all"
+            className="w-full md:w-auto text-center bg-[#E5A93C] text-black px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all"
           >
-            + Add New Insight
+            + New Insight
           </Link>
         </div>
 
-        {/* Tabular View */}
-        <div className="bg-[#14110C] border border-[#231E15] rounded-xl overflow-x-auto shadow-2xl">
-          <table className="w-full text-left border-collapse min-w-[1000px]">
+        {/* --- MOBILE CARD VIEW (Hidden on Desktop) --- */}
+        <div className="grid grid-cols-1 gap-4 lg:hidden">
+          {lessons.map(lesson => (
+            <div
+              key={lesson._id}
+              className="bg-[#14110C] border border-[#231E15] rounded-3xl p-6 space-y-6"
+            >
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <h4 className="font-serif text-lg text-[#F4EFEA] leading-tight">
+                    {lesson.title}
+                  </h4>
+                  <span className="text-[9px] bg-white/5 px-2 py-0.5 rounded text-[#5C544A] uppercase font-mono inline-block">
+                    {lesson.category}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Link
+                    href={`/dashboard/user/my-lessons/${lesson._id}`}
+                    className="p-2 bg-white/5 border border-white/5 text-gray-400 rounded-lg"
+                  >
+                    <FiEdit2 size={14} />
+                  </Link>
+                  <button
+                    onClick={() => openDeleteModal(lesson)}
+                    className="p-2 bg-red-500/10 border border-red-500/10 text-red-500 rounded-lg"
+                  >
+                    <FiTrash2 size={14} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() =>
+                    handleToggleVisibility(lesson._id, lesson.visibility)
+                  }
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${lesson.visibility === 'Public' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}
+                >
+                  {lesson.visibility === 'Public' ? <FiGlobe /> : <FiLock />}{' '}
+                  {lesson.visibility}
+                </button>
+                <button
+                  onClick={() =>
+                    handleToggleAccess(lesson._id, lesson.accessLevel)
+                  }
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${lesson.accessLevel === 'Premium' ? 'bg-[#E5A93C]/10 text-[#E5A93C] border-[#E5A93C]/20' : 'bg-white/5 text-[#5C544A] border-white/5'}`}
+                >
+                  {lesson.accessLevel === 'Premium' && <FiStar />}{' '}
+                  {lesson.accessLevel}
+                </button>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t border-white/5">
+                <div className="flex gap-4 text-[11px] font-mono text-[#5C544A]">
+                  <span className="flex items-center gap-1.5">
+                    <FiHeart className="text-rose-500" />{' '}
+                    {lesson.likesCount || 0}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <FiBookmark className="text-sky-400" />{' '}
+                    {lesson.favoritesCount || 0}
+                  </span>
+                </div>
+                <Link
+                  href={`/public-lessons/${lesson._id}`}
+                  className="text-[#E5A93C] text-[10px] font-black uppercase tracking-widest"
+                >
+                  View Insight →
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* --- DESKTOP TABLE VIEW (Hidden on Mobile) --- */}
+        <div className="hidden lg:block bg-[#14110C] border border-[#231E15] rounded-3xl overflow-hidden shadow-2xl">
+          <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-[#231E15] text-[10px] font-mono uppercase text-[#5C544A] bg-[#1C1812]/50">
-                <th className="py-6 px-8">Insight & Category</th>
-                <th className="py-6 px-6">Visibility</th>
-                <th className="py-6 px-6">Access Control</th>
+              <tr className="border-b border-[#231E15] text-[9px] font-black uppercase text-[#5C544A] tracking-widest">
+                <th className="py-6 px-8">Insight</th>
+                <th className="py-6 px-6">Status</th>
+                <th className="py-6 px-6">Access</th>
                 <th className="py-6 px-6 text-center">Engagement</th>
                 <th className="py-6 px-8 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#231E15]/30">
               {lessons.map(lesson => (
-                <motion.tr
+                <tr
                   key={lesson._id}
-                  className="hover:bg-white/[0.02] transition-colors group"
+                  className="hover:bg-white/[0.01] transition-colors group"
                 >
-                  <td className="py-7 px-8">
+                  <td className="py-6 px-8">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-white/5 border border-white/5 flex items-center justify-center text-[#E5A93C] rounded-lg">
+                      <div className="w-10 h-10 bg-white/5 border border-white/10 flex items-center justify-center text-[#E5A93C] rounded-xl group-hover:scale-110 transition-transform">
                         <FiBookOpen />
                       </div>
-                      <div>
-                        <h4 className="font-serif text-base text-[#F4EFEA] group-hover:text-[#E5A93C] transition-colors">
+                      <div className="max-w-[250px]">
+                        <h4 className="font-serif text-base text-[#F4EFEA] truncate">
                           {lesson.title}
                         </h4>
-                        <span className="text-[9px] bg-white/5 px-2 py-0.5 rounded text-[#5C544A] uppercase font-mono mt-1 inline-block">
+                        <span className="text-[9px] text-[#5C544A] uppercase font-mono tracking-wider">
                           {lesson.category}
                         </span>
                       </div>
                     </div>
                   </td>
-                  <td className="py-7 px-6">
+                  <td className="py-6 px-6">
                     <button
                       onClick={() =>
                         handleToggleVisibility(lesson._id, lesson.visibility)
                       }
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-mono uppercase transition-all ${lesson.visibility === 'Public' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${lesson.visibility === 'Public' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}
                     >
                       {lesson.visibility === 'Public' ? (
                         <FiGlobe />
@@ -274,19 +329,19 @@ export default function MyLessonsPage() {
                       {lesson.visibility}
                     </button>
                   </td>
-                  <td className="py-7 px-6">
+                  <td className="py-6 px-6">
                     <button
                       onClick={() =>
                         handleToggleAccess(lesson._id, lesson.accessLevel)
                       }
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-mono uppercase transition-all ${lesson.accessLevel === 'Premium' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-white/5 text-[#5C544A] border border-white/5'}`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${lesson.accessLevel === 'Premium' ? 'bg-[#E5A93C]/10 text-[#E5A93C] border-[#E5A93C]/20' : 'bg-white/5 text-[#5C544A] border-white/10'}`}
                     >
-                      {lesson.accessLevel === 'Premium' ? <FiStar /> : null}{' '}
+                      {lesson.accessLevel === 'Premium' && <FiStar />}{' '}
                       {lesson.accessLevel}
                     </button>
                   </td>
-                  <td className="py-7 px-6 text-center text-[11px] font-mono text-[#5C544A]">
-                    <div className="flex justify-center items-center gap-6">
+                  <td className="py-6 px-6">
+                    <div className="flex justify-center items-center gap-6 text-[11px] font-mono text-[#5C544A]">
                       <span className="flex items-center gap-1.5">
                         <FiHeart className="text-rose-500" />{' '}
                         {lesson.likesCount || 0}
@@ -297,33 +352,42 @@ export default function MyLessonsPage() {
                       </span>
                     </div>
                   </td>
-                  <td className="py-7 px-8 text-right">
+                  <td className="py-6 px-8 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Link
                         href={`/public-lessons/${lesson._id}`}
-                        className="p-2.5 bg-white/5 border border-white/5 text-[#5C544A] hover:text-[#E5A93C] rounded-lg transition-all"
+                        className="p-2.5 bg-white/5 border border-white/10 text-gray-500 hover:text-[#E5A93C] rounded-xl transition-all"
                       >
                         <FiEye size={14} />
                       </Link>
                       <Link
                         href={`/dashboard/user/my-lessons/${lesson._id}`}
-                        className="p-2.5 bg-white/5 border border-white/5 text-[#5C544A] hover:text-blue-400 rounded-lg transition-all"
+                        className="p-2.5 bg-white/5 border border-white/10 text-gray-500 hover:text-blue-400 rounded-xl transition-all"
                       >
                         <FiEdit2 size={14} />
                       </Link>
                       <button
-                        onClick={() => openDeleteModal(lesson)} // Changed to Modal
-                        className="p-2.5 bg-white/5 border border-white/5 text-[#5C544A] hover:text-red-500 rounded-lg transition-all"
+                        onClick={() => openDeleteModal(lesson)}
+                        className="p-2.5 bg-white/5 border border-white/10 text-gray-500 hover:text-red-500 rounded-xl transition-all"
                       >
                         <FiTrash2 size={14} />
                       </button>
                     </div>
                   </td>
-                </motion.tr>
+                </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {lessons.length === 0 && !loading && (
+          <div className="text-center py-20 bg-[#14110C] rounded-3xl border border-dashed border-[#231E15]">
+            <FiBookOpen size={40} className="mx-auto text-[#231E15] mb-4" />
+            <p className="text-[#5C544A] font-serif italic text-lg">
+              No wisdom recorded in this archive yet.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

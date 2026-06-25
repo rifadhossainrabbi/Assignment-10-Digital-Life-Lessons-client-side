@@ -68,7 +68,7 @@ export default function UserDashboardHome() {
   if (isPending || loading) return <LoadingUI />;
 
   return (
-    <div className="space-y-8 p-4 md:p-6 text-[#D1C7BD] min-h-screen bg-[#0A0908]">
+    <div className="space-y-8 p-4 md:p-5 text-[#D1C7BD] min-h-screen bg-[#0A0908]">
       {/* Requirement: Welcome Header & Quick Action */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <motion.div

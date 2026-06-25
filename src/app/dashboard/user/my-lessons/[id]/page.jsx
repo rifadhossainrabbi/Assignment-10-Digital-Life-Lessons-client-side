@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { FiSave, FiArrowLeft, FiInfo, FiImage, FiUpload } from 'react-icons/fi';
+import { FiSave, FiArrowLeft, FiImage, FiUpload } from 'react-icons/fi';
 import toast, { Toaster } from 'react-hot-toast';
 import { authClient } from '@/lib/auth-client';
 import Link from 'next/link';
@@ -14,7 +14,6 @@ export default function UpdateLessonPage() {
   const { data: session } = authClient.useSession();
   const user = session?.user;
 
-  // ImgBB API Key from your environment variables
   const imgBBKey = process.env.NEXT_PUBLIC_IMGBB_API_KEY;
   const serverUrl =
     process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000';
@@ -31,12 +30,11 @@ export default function UpdateLessonPage() {
     description: '',
     category: '',
     emotionalTone: '',
-    image: '', // This will store the final URL (existing or new ImgBB link)
+    image: '',
     visibility: 'Public',
     accessLevel: 'Free',
   });
 
-  // 1. Fetch existing lesson data to pre-fill the form
   useEffect(() => {
     const fetchLessonData = async () => {
       try {
@@ -53,7 +51,6 @@ export default function UpdateLessonPage() {
             visibility: data.visibility || 'Public',
             accessLevel: data.accessLevel || 'Free',
           });
-          // Set the initial preview to the current image in database
           setPreviewUrl(data.image);
         }
       } catch (error) {
@@ -66,12 +63,11 @@ export default function UpdateLessonPage() {
     if (id) fetchLessonData();
   }, [id, serverUrl]);
 
-  // Handle local file selection and create temporary preview
   const handleFileChange = e => {
     const file = e.target.files[0];
     if (file) {
       setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file)); // Create local URL for preview
+      setPreviewUrl(URL.createObjectURL(file));
     }
   };
 
@@ -80,7 +76,6 @@ export default function UpdateLessonPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // 2. Upload to ImgBB helper function
   const uploadToImgBB = async file => {
     const body = new FormData();
     body.append('image', file);
@@ -97,7 +92,6 @@ export default function UpdateLessonPage() {
     }
   };
 
-  // 3. Handle the main update process
   const handleUpdate = async e => {
     e.preventDefault();
     setUpdating(true);
@@ -105,14 +99,12 @@ export default function UpdateLessonPage() {
     try {
       let finalImageUrl = formData.image;
 
-      // If a new file was selected, upload it to ImgBB first
       if (selectedFile) {
         toast.loading('Uploading new image...', { id: 'upload' });
         finalImageUrl = await uploadToImgBB(selectedFile);
         toast.success('Image uploaded!', { id: 'upload' });
       }
 
-      // Prepare final data with the new (or old) image URL
       const updatedLesson = { ...formData, image: finalImageUrl };
 
       const res = await fetch(`${serverUrl}/lessons/${id}`, {
@@ -122,15 +114,15 @@ export default function UpdateLessonPage() {
       });
 
       if (res.ok) {
-        toast.success('Wisdom updated in the archives!', {
+        toast.success('Wisdom updated!', {
           style: { background: '#1A1612', color: '#E5A93C' },
         });
         setTimeout(() => router.push('/dashboard/user/my-lessons'), 1500);
       } else {
-        toast.error('Could not sync updates to database');
+        toast.error('Sync failed');
       }
     } catch (error) {
-      toast.error(error.message || 'Server connection failed');
+      toast.error(error.message || 'Server error');
     } finally {
       setUpdating(false);
     }
@@ -138,63 +130,67 @@ export default function UpdateLessonPage() {
 
   if (loading)
     return (
-      <div className="min-h-screen bg-[#0F0D0A] flex items-center justify-center text-[#E5A93C] font-mono animate-pulse">
+      <div className="min-h-screen bg-[#0F0D0A] flex items-center justify-center text-[#E5A93C] font-mono animate-pulse p-4 text-center">
         RETRIEVING ARCHIVE DATA...
       </div>
     );
 
   return (
-    <div className="min-h-screen bg-[#0F0D0A] text-[#E6DFD3] p-6 md:p-12">
+    <div className="min-h-screen bg-[#0F0D0A] text-[#E6DFD3] p-4 md:p-8 lg:p-12">
       <Toaster />
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
+        {/* Back Link */}
         <Link
           href="/dashboard/user/my-lessons"
-          className="flex items-center gap-2 text-[#5C544A] hover:text-[#E5A93C] transition-colors mb-8 font-mono text-xs uppercase tracking-widest"
+          className="flex items-center gap-2 text-[#5C544A] hover:text-[#E5A93C] transition-colors mb-6 md:mb-10 font-mono text-[10px] uppercase tracking-widest"
         >
           <FiArrowLeft /> Back to Archives
         </Link>
 
-        <header className="mb-10 border-b border-[#231E15] pb-6">
-          <h1 className="text-4xl font-serif text-[#E6DFD3]">Edit Insight</h1>
-          <p className="text-[10px] text-[#5C544A] mt-2 font-mono uppercase tracking-[0.3em]">
+        {/* Header */}
+        <header className="mb-8 md:mb-12 border-b border-[#231E15] pb-6">
+          <h1 className="text-3xl md:text-5xl font-serif text-[#E6DFD3]">
+            Edit Insight
+          </h1>
+          <p className="text-[9px] md:text-[10px] text-[#5C544A] mt-2 font-mono uppercase tracking-[0.3em]">
             Refine your shared wisdom
           </p>
         </header>
 
-        <form onSubmit={handleUpdate} className="space-y-8">
-          {/* Image Preview and Upload Section */}
-          <div className="bg-[#14110C] border border-[#231E15] p-6 rounded-xl">
-            <label className="block text-[10px] font-mono uppercase text-[#5C544A] mb-4 tracking-widest">
+        <form onSubmit={handleUpdate} className="space-y-8 md:space-y-12">
+          {/* Image Upload Section */}
+          <section className="bg-[#14110C] border border-[#231E15] p-5 md:p-8 rounded-2xl md:rounded-3xl">
+            <label className="block text-[10px] font-mono uppercase text-[#5C544A] mb-6 tracking-widest">
               Visual Representation
             </label>
-            <div className="flex flex-col md:flex-row items-center gap-8">
+            <div className="flex flex-col lg:flex-row items-center gap-6 md:gap-10">
               {/* Preview Box */}
-              <div className="w-full md:w-48 h-48 bg-black/40 border border-[#231E15] rounded-lg overflow-hidden flex items-center justify-center relative group">
+              <div className="w-full lg:w-56 h-56 md:h-64 bg-black/40 border border-[#231E15] rounded-2xl overflow-hidden flex items-center justify-center relative group shrink-0">
                 {previewUrl ? (
                   <img
                     src={previewUrl}
                     alt="Lesson"
-                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                    className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-all duration-500"
                   />
                 ) : (
                   <FiImage size={40} className="text-[#231E15]" />
                 )}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                  <p className="text-[8px] font-mono uppercase text-white">
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <p className="text-[9px] font-mono uppercase text-white bg-black/60 px-3 py-1 rounded-full">
                     Current View
                   </p>
                 </div>
               </div>
 
-              {/* Upload Input */}
-              <div className="flex-1 w-full">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[#231E15] rounded-lg cursor-pointer hover:border-[#E5A93C]/30 transition-colors bg-black/20">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <FiUpload className="text-[#E5A93C] mb-2" />
-                    <p className="text-[10px] text-[#E6DFD3] font-mono uppercase tracking-tighter">
-                      Click to upload new image
+              {/* Upload Dropzone */}
+              <div className="w-full">
+                <label className="flex flex-col items-center justify-center w-full h-40 md:h-48 border-2 border-dashed border-[#231E15] rounded-2xl cursor-pointer hover:border-[#E5A93C]/30 transition-all bg-black/20 group">
+                  <div className="flex flex-col items-center justify-center p-6 text-center">
+                    <FiUpload className="text-[#E5A93C] mb-3 text-xl group-hover:scale-110 transition-transform" />
+                    <p className="text-[10px] md:text-xs text-[#E6DFD3] font-mono uppercase tracking-widest">
+                      Upload New Image
                     </p>
-                    <p className="text-[8px] text-[#5C544A] mt-1 uppercase">
+                    <p className="text-[8px] text-[#5C544A] mt-2 uppercase tracking-tighter">
                       JPG, PNG or WEBP (Max 2MB)
                     </p>
                   </div>
@@ -206,18 +202,19 @@ export default function UpdateLessonPage() {
                   />
                 </label>
                 {selectedFile && (
-                  <p className="text-[10px] text-[#E5A93C] mt-2 font-mono italic">
-                    New image selected: {selectedFile.name}
+                  <p className="text-[10px] text-[#E5A93C] mt-3 font-mono italic text-center lg:text-left">
+                    ✓ Selected: {selectedFile.name}
                   </p>
                 )}
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Form Fields Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             {/* Title */}
             <div className="md:col-span-2">
-              <label className="block text-[10px] font-mono uppercase text-[#5C544A] mb-2 tracking-widest">
+              <label className="block text-[10px] font-mono uppercase text-[#5C544A] mb-3 tracking-widest">
                 Lesson Title
               </label>
               <input
@@ -226,20 +223,20 @@ export default function UpdateLessonPage() {
                 value={formData.title}
                 onChange={handleChange}
                 required
-                className="w-full bg-[#14110C] border border-[#231E15] rounded-lg p-4 text-[#E6DFD3] focus:border-[#E5A93C] outline-none"
+                className="w-full bg-[#14110C] border border-[#231E15] rounded-xl p-4 md:p-5 text-[#E6DFD3] focus:border-[#E5A93C] outline-none transition-colors"
               />
             </div>
 
             {/* Category */}
-            <div>
-              <label className="block text-[10px] font-mono uppercase text-[#5C544A] mb-2 tracking-widest">
+            <div className="space-y-3">
+              <label className="block text-[10px] font-mono uppercase text-[#5C544A] tracking-widest">
                 Category
               </label>
               <select
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
-                className="w-full bg-[#14110C] border border-[#231E15] rounded-lg p-4 text-[#E6DFD3] outline-none"
+                className="w-full bg-[#14110C] border border-[#231E15] rounded-xl p-4 md:p-5 text-[#E6DFD3] outline-none appearance-none focus:border-[#E5A93C] cursor-pointer"
               >
                 <option value="Personal Growth">Personal Growth</option>
                 <option value="Career">Career</option>
@@ -251,15 +248,15 @@ export default function UpdateLessonPage() {
             </div>
 
             {/* Emotional Tone */}
-            <div>
-              <label className="block text-[10px] font-mono uppercase text-[#5C544A] mb-2 tracking-widest">
+            <div className="space-y-3">
+              <label className="block text-[10px] font-mono uppercase text-[#5C544A] tracking-widest">
                 Emotional Tone
               </label>
               <select
                 name="emotionalTone"
                 value={formData.emotionalTone}
                 onChange={handleChange}
-                className="w-full bg-[#14110C] border border-[#231E15] rounded-lg p-4 text-[#E6DFD3] outline-none"
+                className="w-full bg-[#14110C] border border-[#231E15] rounded-xl p-4 md:p-5 text-[#E6DFD3] outline-none appearance-none focus:border-[#E5A93C] cursor-pointer"
               >
                 <option value="Motivational">Motivational</option>
                 <option value="Sad">Sad</option>
@@ -271,38 +268,38 @@ export default function UpdateLessonPage() {
 
             {/* Description */}
             <div className="md:col-span-2">
-              <label className="block text-[10px] font-mono uppercase text-[#5C544A] mb-2 tracking-widest">
+              <label className="block text-[10px] font-mono uppercase text-[#5C544A] mb-3 tracking-widest">
                 Full Insight / Story
               </label>
               <textarea
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                rows={6}
+                rows={8}
                 required
-                className="w-full bg-[#14110C] border border-[#231E15] rounded-lg p-4 text-[#E6DFD3] outline-none resize-none"
+                className="w-full bg-[#14110C] border border-[#231E15] rounded-xl p-4 md:p-5 text-[#E6DFD3] outline-none resize-none focus:border-[#E5A93C] transition-colors"
               ></textarea>
             </div>
 
             {/* Visibility */}
-            <div>
-              <label className="block text-[10px] font-mono uppercase text-[#5C544A] mb-2 tracking-widest">
+            <div className="space-y-3">
+              <label className="block text-[10px] font-mono uppercase text-[#5C544A] tracking-widest">
                 Visibility
               </label>
               <select
                 name="visibility"
                 value={formData.visibility}
                 onChange={handleChange}
-                className="w-full bg-[#14110C] border border-[#231E15] rounded-lg p-4 text-[#E6DFD3] outline-none"
+                className="w-full bg-[#14110C] border border-[#231E15] rounded-xl p-4 md:p-5 text-[#E6DFD3] outline-none focus:border-[#E5A93C] cursor-pointer"
               >
-                <option value="Public">Public</option>
-                <option value="Private">Private</option>
+                <option value="Public">Public Access</option>
+                <option value="Private">Private Vault</option>
               </select>
             </div>
 
             {/* Access Level */}
-            <div>
-              <label className="block text-[10px] font-mono uppercase text-[#5C544A] mb-2 tracking-widest">
+            <div className="space-y-3">
+              <label className="block text-[10px] font-mono uppercase text-[#5C544A] tracking-widest">
                 Access Control
               </label>
               <select
@@ -310,29 +307,40 @@ export default function UpdateLessonPage() {
                 value={formData.accessLevel}
                 onChange={handleChange}
                 disabled={!isPremiumUser}
-                className={`w-full bg-[#14110C] border border-[#231E15] rounded-lg p-4 text-[#E6DFD3] outline-none ${!isPremiumUser && 'opacity-50'}`}
+                className={`w-full bg-[#14110C] border border-[#231E15] rounded-xl p-4 md:p-5 text-[#E6DFD3] outline-none focus:border-[#E5A93C] ${!isPremiumUser && 'opacity-40 cursor-not-allowed'}`}
               >
-                <option value="Free">Free Access</option>
-                <option value="Premium">Premium ⭐</option>
+                <option value="Free">Open for All (Free)</option>
+                <option value="Premium">Premium Subscribers ⭐</option>
               </select>
+              {!isPremiumUser && (
+                <p className="text-[8px] text-amber-500/50 uppercase tracking-widest pl-1">
+                  Premium required for tiered access
+                </p>
+              )}
             </div>
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            disabled={updating}
-            type="submit"
-            className="w-full bg-[#E5A93C] text-black py-4 rounded-lg font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            {updating ? (
-              'SYNCING ARCHIVE...'
-            ) : (
-              <>
-                <FiSave /> Update Wisdom
-              </>
-            )}
-          </motion.button>
+          {/* Submit Button */}
+          <div className="pt-6">
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              disabled={updating}
+              type="submit"
+              className="w-full bg-[#E5A93C] text-black py-5 rounded-xl font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl shadow-amber-900/10 hover:bg-white transition-all duration-300"
+            >
+              {updating ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  Syncing...
+                </span>
+              ) : (
+                <>
+                  <FiSave className="text-lg" /> Update Wisdom
+                </>
+              )}
+            </motion.button>
+          </div>
         </form>
       </div>
     </div>
