@@ -51,6 +51,12 @@ export default function AddLessonPage() {
     }
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!authLoading && !session) {
+      router.replace('/signin');
+    }
+  }, [session, authLoading, router]);
+
   if (authLoading)
     return (
       <div className="min-h-screen bg-[#0F0D0A] flex items-center justify-center font-mono text-[#E5A93C] animate-pulse">

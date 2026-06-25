@@ -27,6 +27,12 @@ export default function UserDashboardHome() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isPending && !session) {
+      router.replace('/signin');
+    }
+  }, [session, isPending, router]);
+
+  useEffect(() => {
     // Safety check for session
     if (isPending || !session?.user) return;
 

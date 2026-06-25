@@ -11,7 +11,7 @@ import Link from 'next/link';
 export default function UpdateLessonPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
 
   const imgBBKey = process.env.NEXT_PUBLIC_IMGBB_API_KEY;
@@ -34,6 +34,12 @@ export default function UpdateLessonPage() {
     visibility: 'Public',
     accessLevel: 'Free',
   });
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.replace('/signin');
+    }
+  }, [session, isPending, router]);
 
   useEffect(() => {
     const fetchLessonData = async () => {

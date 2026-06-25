@@ -49,6 +49,12 @@ export default function PublicLessonDetailPage() {
     [],
   );
 
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.replace('/signin');
+    }
+  }, [session, isPending, router]);
+
   // Fetch Lesson Details
   useEffect(() => {
     if (!params?.id || isPending) return;

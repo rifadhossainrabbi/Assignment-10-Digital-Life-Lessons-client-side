@@ -13,8 +13,10 @@ import {
 import { authClient } from '@/lib/auth-client';
 import toast, { Toaster } from 'react-hot-toast';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 const UserProfile = () => {
+  const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
   const serverUrl =
@@ -29,7 +31,7 @@ const UserProfile = () => {
 
   useEffect(() => {
     if (user) {
-      setName(user.name);
+      setName(user?.name);
       setPhotoURL(user.image || '');
 
       fetch(`${serverUrl}/lessons/user/${user.id}`)
@@ -43,6 +45,12 @@ const UserProfile = () => {
         .catch(() => console.error('Fav count error'));
     }
   }, [user, serverUrl]);
+
+      useEffect(() => {
+        if (!isPending && !session) {
+          router.replace('/signin');
+        }
+      }, [session, isPending, router]);
 
   // --- Helper: Get Initials from Name ---
   const getInitials = fullName => {

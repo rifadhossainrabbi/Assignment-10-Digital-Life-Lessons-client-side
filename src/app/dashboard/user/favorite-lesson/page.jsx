@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiTrash2, FiEye, FiBookmark, FiFilter, FiInfo } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import { authClient } from '@/lib/auth-client';
@@ -9,37 +9,62 @@ export default function UserFavoritePage() {
   const { data: session, isPending: authLoading } = authClient.useSession();
   const router = useRouter();
 
+  // Component states
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedTone, setSelectedTone] = useState('');
 
-  const fetchFavorites = useCallback(async () => {
-    if (!session?.user?.id) return;
-    try {
-      setLoading(true);
-      let url = `${process.env.NEXT_PUBLIC_SERVER_URL}/favorites/${session.user.id}?`;
-      if (selectedCategory) url += `category=${selectedCategory}&`;
-      if (selectedTone) url += `emotionalTone=${selectedTone}`;
-
-      const res = await fetch(url);
-      const data = await res.json();
-      setFavorites(data);
-    } catch (error) {
-      console.error('Archive Sync Error:', error);
-      toast.error('Failed to sync archives');
-    } finally {
-      setLoading(false);
-    }
-  }, [session?.user?.id, selectedCategory, selectedTone]);
-
+  /**
+   * Effect to fetch data whenever filters or session changes
+   */
   useEffect(() => {
-    if (session) fetchFavorites();
-  }, [session, fetchFavorites]);
+    // Define the fetch function inside useEffect
+    const fetchFavoritesData = async () => {
+      if (!session?.user?.id) return;
 
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (selectedCategory) params.append('category', selectedCategory);
+        if (selectedTone) params.append('emotionalTone', selectedTone);
+
+        const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || '';
+        const baseUrl = `${serverUrl}/favorites/${session.user.id}`;
+        const queryStr = params.toString();
+        const url = queryStr ? `${baseUrl}?${queryStr}` : baseUrl;
+
+        const res = await fetch(url);
+        const data = await res.json();
+        setFavorites(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Fetch error:', error);
+        toast.error('Failed to sync archives');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Run the fetch function only if session exists
+    if (session) {
+      fetchFavoritesData();
+    }
+  }, [session, selectedCategory, selectedTone]); // Re-run when these values change
+
+  /**
+   * Redirect to signin if not authenticated
+   */
+  useEffect(() => {
+    if (!authLoading && !session) {
+      router.replace('/signin');
+    }
+  }, [session, authLoading, router]);
+
+  /**
+   * Delete handler
+   */
   const handleRemoveFavorite = async lessonId => {
-    if (!window.confirm('Remove this wisdom from your preserved collection?'))
-      return;
+    if (!window.confirm('Remove from your collection?')) return;
 
     try {
       const res = await fetch(
@@ -47,7 +72,7 @@ export default function UserFavoritePage() {
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: session.user.id }),
+          body: JSON.stringify({ userId: session?.user?.id }),
         },
       );
 
@@ -58,11 +83,12 @@ export default function UserFavoritePage() {
         toast.error('Action failed');
       }
     } catch (error) {
-      toast.error('Network error');
+      toast.error('Network error occurred');
     }
   };
 
-  if (authLoading || loading)
+  // Loading UI
+  if (authLoading || (session && loading)) {
     return (
       <div className="min-h-screen bg-[#0A0908] flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-4">
@@ -73,11 +99,14 @@ export default function UserFavoritePage() {
         </div>
       </div>
     );
+  }
+
+  if (!session) return null;
 
   return (
     <div className="min-h-screen bg-[#0A0908] text-[#D1C7BD] p-4 md:p-8 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8 md:space-y-12">
-        {/* --- Header & Filters Section --- */}
+        {/* Header & Filter Controls */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end border-b border-[#1A1612] pb-8 gap-8">
           <div className="space-y-3">
             <h1 className="text-3xl md:text-5xl font-serif text-[#F4EFEA] tracking-tight">
@@ -102,6 +131,7 @@ export default function UserFavoritePage() {
                 <option value="Career">Career</option>
                 <option value="Mindset">Mindset</option>
                 <option value="Relationships">Relationships</option>
+                <option value="Mistakes Learned">Mistakes Learned</option>
               </select>
             </div>
 
@@ -133,10 +163,10 @@ export default function UserFavoritePage() {
           </div>
         </div>
 
-        {/* --- Main Content --- */}
+        {/* Content Section */}
         {favorites.length > 0 ? (
           <>
-            {/* Desktop Table View (Hidden on Mobile/Tablet) */}
+            {/* Desktop Table View */}
             <div className="hidden lg:block bg-[#0F0E0C] border border-[#1A1612] rounded-xl overflow-hidden shadow-2xl">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -145,7 +175,7 @@ export default function UserFavoritePage() {
                       <th className="p-6 font-medium">Preview</th>
                       <th className="p-6 font-medium">Wisdom Entry</th>
                       <th className="p-6 font-medium">Classification</th>
-                      <th className="p-6 font-medium">Community Impact</th>
+                      <th className="p-6 font-medium">Impact</th>
                       <th className="p-6 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
@@ -160,9 +190,9 @@ export default function UserFavoritePage() {
                             <img
                               src={
                                 lesson.image ||
-                                'https://via.placeholder.com/150'
+                                'https://i.ibb.co/L5M0Y8Y/avatar.png'
                               }
-                              alt="thumb"
+                              alt="thumbnail"
                               className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
                             />
                           </div>
@@ -181,7 +211,7 @@ export default function UserFavoritePage() {
                               {lesson.category}
                             </span>
                             <span className="text-[9px] font-mono text-[#8C8275] uppercase tracking-tighter">
-                              Tone: {lesson.emotionalTone}
+                              {lesson.emotionalTone}
                             </span>
                           </div>
                         </td>
@@ -216,7 +246,7 @@ export default function UserFavoritePage() {
               </div>
             </div>
 
-            {/* Mobile Card View (Hidden on Desktop) */}
+            {/* Mobile Card View */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:hidden gap-4">
               {favorites.map(lesson => (
                 <div
@@ -226,26 +256,27 @@ export default function UserFavoritePage() {
                   <div className="flex gap-4">
                     <div className="w-20 h-20 rounded-xl bg-zinc-900 overflow-hidden border border-[#26221C] shrink-0">
                       <img
-                        src={lesson.image || 'https://via.placeholder.com/150'}
-                        alt="thumb"
+                        src={
+                          lesson.image || 'https://i.ibb.co/L5M0Y8Y/avatar.png'
+                        }
+                        alt="thumbnail"
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-[#F4EFEA] font-serif text-lg line-clamp-2 leading-tight group-hover:text-[#E5A93C] transition-colors">
+                      <h3 className="text-[#F4EFEA] font-serif text-lg line-clamp-2 group-hover:text-[#E5A93C] transition-colors">
                         {lesson.title}
                       </h3>
                       <div className="mt-2 flex items-center gap-3">
                         <span className="text-[9px] font-mono text-[#E5A93C] uppercase tracking-widest">
                           {lesson.category}
                         </span>
-                        <span className="text-red-500/60 text-xs flex items-center gap-1 font-mono">
+                        <span className="text-red-500/60 text-xs font-mono">
                           ❤️ {lesson.likesCount || 0}
                         </span>
                       </div>
                     </div>
                   </div>
-
                   <div className="flex items-center justify-between pt-4 border-t border-[#1A1612]">
                     <span className="text-[9px] font-mono text-[#5C544A] uppercase">
                       Ref: {lesson._id.slice(-6).toUpperCase()}
@@ -272,7 +303,6 @@ export default function UserFavoritePage() {
             </div>
           </>
         ) : (
-          /* Empty State */
           <div className="py-24 px-6 text-center flex flex-col items-center gap-6 bg-[#0F0E0C] border border-[#1A1612] rounded-2xl">
             <div className="w-16 h-16 bg-[#0A0908] border border-[#1A1612] rounded-full flex items-center justify-center">
               <FiInfo className="text-[#5C544A] text-2xl" />
@@ -281,8 +311,8 @@ export default function UserFavoritePage() {
               <p className="text-xl font-serif italic text-[#8C8275]">
                 "Silence in the archive."
               </p>
-              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#5C544A] leading-relaxed">
-                No preserved wisdom matches your current criteria.
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#5C544A]">
+                No wisdom matches your filter criteria.
               </p>
             </div>
           </div>

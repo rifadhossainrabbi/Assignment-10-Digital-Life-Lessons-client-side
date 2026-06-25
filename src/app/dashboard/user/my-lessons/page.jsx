@@ -18,9 +18,11 @@ import {
 import toast, { Toaster } from 'react-hot-toast';
 import { authClient } from '@/lib/auth-client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function MyLessonsPage() {
-  const { data: session } = authClient.useSession();
+  const router = useRouter();
+  const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
   const isPremiumUser = user?.plan === 'premium' || false;
   const serverUrl =
@@ -32,6 +34,12 @@ export default function MyLessonsPage() {
   // Modal States
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [lessonToDelete, setLessonToDelete] = useState(null);
+
+    useEffect(() => {
+      if (!isPending && !session) {
+        router.replace('/signin');
+      }
+    }, [session, isPending, router]);
 
   const fetchMyLessons = async () => {
     if (!user?.id) return;

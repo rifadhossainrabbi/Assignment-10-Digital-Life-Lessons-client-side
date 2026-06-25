@@ -10,7 +10,7 @@ import { toast } from 'react-hot-toast';
 export default function AuthorProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
   const currentUser = session?.user;
 
   // State Management
@@ -36,6 +36,12 @@ export default function AuthorProfilePage() {
     };
     fetchAuthorData();
   }, [params.id]);
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.replace('/signin');
+    }
+  }, [session, isPending, router]);
 
   // 2. Extract author identity metadata from the first lesson object
   const authorInfo = useMemo(() => {

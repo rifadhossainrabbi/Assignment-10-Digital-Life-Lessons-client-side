@@ -10,6 +10,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import 'swiper/css/effect-fade';
+import Link from 'next/link';
 
 const sliderData = [
   {
@@ -101,13 +102,13 @@ const BannerSection = () => {
                   transition={{ duration: 0.5, delay: 0.6 }}
                   className="flex flex-wrap gap-4 justify-center"
                 >
-                  <button className="group flex items-center gap-2 bg-[#F1C40F] hover:bg-white text-black font-bold px-8 py-4 rounded-sm transition-all duration-300 shadow-xl shadow-yellow-500/10">
-                    Explore Lessons
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                  </button>
-                  <button className="bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-4 rounded-sm border border-white/20 backdrop-blur-md transition-all">
-                    Share Wisdom
-                  </button>
+                  <Link href={'/public-lessons'}>
+                    {' '}
+                    <button className="group flex items-center gap-2 bg-[#F1C40F] hover:bg-white text-black font-bold px-8 py-4 rounded-sm transition-all duration-300 shadow-xl shadow-yellow-500/10">
+                      Explore Lessons
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    </button>
+                  </Link>
                 </motion.div>
               </div>
             </div>
