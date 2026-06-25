@@ -259,13 +259,13 @@ export default function MyLessonsPage() {
                     <td className="py-7 px-8 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Link
-                          href={`/lessons/${lesson._id}`}
+                          href={`/public-lessons/${lesson._id}`}
                           className="p-2.5 bg-white/5 border border-white/5 text-[#5C544A] hover:text-[#E5A93C] transition-all rounded-lg"
                         >
                           <FiEye size={14} />
                         </Link>
                         <Link
-                          href={`/dashboard/user/update-lesson/${lesson._id}`}
+                          href={`/dashboard/user/my-lessons/${lesson._id}`}
                           className="p-2.5 bg-white/5 border border-white/5 text-[#5C544A] hover:text-blue-400 transition-all rounded-lg"
                         >
                           <FiEdit2 size={14} />
