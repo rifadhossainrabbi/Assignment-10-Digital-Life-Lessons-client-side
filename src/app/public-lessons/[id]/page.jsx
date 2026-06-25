@@ -458,7 +458,7 @@ export default function PublicLessonDetailPage() {
                 </div>
               </div>
               <Link
-                href={`/profile/${lesson.author?.userId}`}
+                href={`/author-profile/${lesson.author?.userId}`}
                 className="block w-full border border-blue-500/30 text-blue-400 py-5 text-[11px] font-bold uppercase tracking-[0.2em] text-center hover:bg-blue-600 hover:text-white transition-all shadow-sm"
               >
                 View all lessons by this author
