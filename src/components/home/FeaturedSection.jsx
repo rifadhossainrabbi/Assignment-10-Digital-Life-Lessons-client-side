@@ -26,7 +26,7 @@ const FeaturedSection = () => {
   }
 
   return (
-    <section className="py-20 bg-[#0A0908]">
+    <section className="py-20 w-full bg-[#0A0908]">
       <div className="container mx-auto px-6">
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">

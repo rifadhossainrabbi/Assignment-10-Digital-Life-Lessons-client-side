@@ -36,7 +36,7 @@ const TopContributors = () => {
   }
 
   return (
-    <section className="container py-24 bg-[#0A0908] border-t border-white/5">
+    <section className="w-full py-24 bg-[#0A0908] border-t border-white/5">
       <div className="container mx-auto px-6 md:px-10">
         {/* Section Header */}
         <header className="mb-16">

@@ -57,7 +57,7 @@ const WhyLearning = () => {
   };
 
   return (
-    <section className="py-20 bg-[#0a0a0a] overflow-hidden">
+    <section className="py-20 w-full bg-[#0a0a0a] overflow-hidden">
       <div className="container mx-auto px-4">
         {/* Section Heading */}
         <div className="text-center mb-16">
