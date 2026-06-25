@@ -64,7 +64,7 @@ const Navbar = () => {
   }
 
   // 3. Pricing link logic (Only for logged-in standard users who aren't premium)
-  if (isLoggedIn && userRole === 'user' && !user?.plan === 'premium') {
+  if (isLoggedIn && userRole === 'user' && user?.plan === 'free') {
     navLinks.push({ name: 'Pricing', href: '/pricing' });
   }
 
