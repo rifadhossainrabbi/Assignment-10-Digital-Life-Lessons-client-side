@@ -116,48 +116,64 @@ export default function AuthorProfilePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {lessons.map(lesson => {
-            // 4. Access Level Restriction Logic (Locked if Premium and User is Free)
+            // 4. STRICT ACCESS CONTROL: Lock if lesson is Premium AND user plan is NOT premium
             const isLocked =
-              lesson.accessLevel === 'Premium' && !currentUser?.isPremium;
+              lesson.accessLevel === 'Premium' &&
+              currentUser?.plan !== 'premium';
 
             return (
               <motion.div
                 key={lesson._id}
-                whileHover={!isLocked ? { y: -8 } : {}}
-                className={`bg-[#0F0E0C] border border-[#1A1612] rounded-2xl overflow-hidden flex flex-col h-full group transition-all duration-500 shadow-xl ${
-                  !isLocked
-                    ? 'hover:border-[#E5A93C]/40 cursor-pointer'
-                    : 'cursor-not-allowed'
+                whileHover={{ y: -6 }}
+                className={`bg-[#0F0E0C] border border-[#1A1612] rounded-2xl overflow-hidden flex flex-col h-full group transition-all duration-500 shadow-xl cursor-pointer ${
+                  isLocked
+                    ? 'hover:border-red-900/30'
+                    : 'hover:border-[#E5A93C]/40'
                 }`}
-                // 5. Navigate to dynamic lesson details page on click
-                onClick={() =>
-                  !isLocked && router.push(`/public-lessons/${lesson._id}`)
-                }
+                // 5. Smart Navigation: Send to pricing if locked, else send to details
+                onClick={() => {
+                  if (isLocked) {
+                    router.push('/pricing');
+                  } else {
+                    router.push(`/public-lessons/${lesson._id}`);
+                  }
+                }}
               >
                 {/* Visual Asset Section */}
                 <div className="relative h-56 overflow-hidden bg-[#0A0908]">
                   <img
                     src={lesson.image || 'https://via.placeholder.com/800x450'}
-                    className={`w-full h-full object-cover transition-transform duration-1000 ${!isLocked ? 'group-hover:scale-110 brightness-75' : 'blur-3xl grayscale'}`}
+                    className={`w-full h-full object-cover transition-transform duration-1000 ${
+                      !isLocked
+                        ? 'group-hover:scale-110 brightness-75'
+                        : 'blur-3xl grayscale opacity-40'
+                    }`}
                     alt="Lesson Asset"
                   />
 
-                  {/* Premium Lock Overlay */}
+                  {/* Access Level Badge */}
+                  <div className="absolute top-4 left-4">
+                    <span
+                      className={`text-[9px] font-black uppercase px-2.5 py-1 rounded shadow-lg ${
+                        lesson.accessLevel === 'Premium'
+                          ? 'bg-[#E5A93C] text-black'
+                          : 'bg-white/10 text-white backdrop-blur-md border border-white/10'
+                      }`}
+                    >
+                      {lesson.accessLevel}
+                    </span>
+                  </div>
+
+                  {/* Premium Lock Overlay for Free/Guest Users */}
                   {isLocked && (
-                    <div className="absolute inset-0 bg-[#0A0908]/50 backdrop-blur-lg flex flex-col items-center justify-center p-6 text-center">
-                      <FiLock className="text-[#E5A93C] text-3xl mb-3 animate-pulse" />
-                      <p className="text-white font-serif text-sm mb-4">
-                        Premium Entry
+                    <div className="absolute inset-0 bg-[#0A0908]/60 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+                      <FiLock className="text-[#E5A93C] text-3xl mb-3 animate-bounce" />
+                      <p className="text-white font-serif text-sm font-bold uppercase tracking-widest">
+                        Restricted Entry
                       </p>
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          router.push('/pricing');
-                        }}
-                        className="bg-[#E5A93C] text-black text-[9px] px-5 py-2 font-black uppercase tracking-widest rounded-sm hover:bg-white transition-all shadow-lg"
-                      >
-                        Upgrade Account
-                      </button>
+                      <p className="text-[10px] text-[#E5A93C] mt-1 font-mono uppercase">
+                        Upgrade to Read
+                      </p>
                     </div>
                   )}
                 </div>
@@ -169,13 +185,13 @@ export default function AuthorProfilePage() {
                   </div>
 
                   <h3
-                    className={`text-xl font-serif text-white mb-4 line-clamp-2 leading-relaxed transition-colors group-hover:text-[#E5A93C] ${isLocked ? 'opacity-20' : ''}`}
+                    className={`text-xl font-serif text-white mb-4 line-clamp-2 leading-relaxed transition-colors group-hover:text-[#E5A93C] ${isLocked ? 'opacity-30' : ''}`}
                   >
                     {lesson.title}
                   </h3>
 
                   <p
-                    className={`text-[#8C8275] text-sm font-serif italic mb-8 line-clamp-3 leading-relaxed flex-grow ${isLocked ? 'opacity-5' : ''}`}
+                    className={`text-[#8C8275] text-sm font-serif italic mb-8 line-clamp-3 leading-relaxed flex-grow ${isLocked ? 'opacity-10' : ''}`}
                   >
                     "{lesson.description}"
                   </p>
@@ -191,7 +207,7 @@ export default function AuthorProfilePage() {
                         Read Entry <FiEye />
                       </span>
                     ) : (
-                      <span className="text-[9px] font-mono text-red-900/50 uppercase tracking-tighter">
+                      <span className="text-[9px] font-mono text-red-500 font-bold uppercase tracking-tighter">
                         Locked Archive
                       </span>
                     )}

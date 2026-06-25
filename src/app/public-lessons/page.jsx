@@ -32,7 +32,6 @@ export default function PublicLessonsPage() {
         setLoading(false);
       }
     };
-
     fetchLessonsData();
   }, []);
 
@@ -100,17 +99,6 @@ export default function PublicLessonsPage() {
           </select>
 
           <select
-            value={tone}
-            onChange={e => setTone(e.target.value)}
-            className="bg-[#0A0908] border border-[#1A1612] text-white text-xs h-11 px-4 outline-none cursor-pointer focus:border-[#E5A93C] rounded-lg"
-          >
-            <option value="All">All Tones</option>
-            <option value="Motivational">Motivational</option>
-            <option value="Contemplative">Contemplative</option>
-            <option value="Realization">Realization</option>
-          </select>
-
-          <select
             value={sortBy}
             onChange={e => setSortBy(e.target.value)}
             className="bg-[#0A0908] border border-[#1A1612] text-white text-xs h-11 px-4 outline-none cursor-pointer focus:border-[#E5A93C] rounded-lg"
@@ -120,7 +108,6 @@ export default function PublicLessonsPage() {
         </div>
       </div>
 
-      {/* 4-COLUMN DYNAMIC GRID (Matches FeaturedSection) */}
       <div className="max-w-7xl mx-auto">
         {filteredLessons.length === 0 ? (
           <div className="text-center py-24 border border-dashed border-[#1A1612] rounded-2xl">
@@ -131,78 +118,78 @@ export default function PublicLessonsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {filteredLessons.map(lesson => {
+              // 🔑 CORE LOGIC: Lock if lesson is Premium AND user plan is NOT premium
               const isLocked =
-                lesson.accessLevel === 'Premium' && !currentUser?.isPremium;
+                lesson.accessLevel === 'Premium' &&
+                currentUser?.plan !== 'premium';
 
               return (
                 <motion.div
                   key={lesson._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`bg-[#0F0E0C] border border-[#1A1612] rounded-2xl overflow-hidden flex flex-col h-full group transition-all duration-500 shadow-xl ${
-                    !isLocked
-                      ? 'hover:border-[#E5A93C]/30 cursor-pointer'
-                      : 'cursor-default'
+                  whileHover={{ y: -5 }}
+                  className={`bg-[#0F0E0C] border border-[#1A1612] rounded-2xl overflow-hidden flex flex-col h-full group transition-all duration-500 shadow-xl cursor-pointer ${
+                    isLocked
+                      ? 'hover:border-red-900/30'
+                      : 'hover:border-[#E5A93C]/30'
                   }`}
-                  onClick={() =>
-                    !isLocked && router.push(`/public-lessons/${lesson._id}`)
-                  }
+                  // Redirect logic based on lock status
+                  onClick={() => {
+                    if (isLocked) {
+                      router.push('/pricing');
+                    } else {
+                      router.push(`/public-lessons/${lesson._id}`);
+                    }
+                  }}
                 >
-                  {/* Image Section with Lockdown Logic */}
+                  {/* Image Section */}
                   <div className="relative h-48 overflow-hidden">
                     <img
                       src={
                         lesson.image || 'https://via.placeholder.com/800x450'
                       }
                       alt={lesson.title}
-                      className={`w-full h-full object-cover transition-transform duration-700 brightness-75 ${
+                      className={`w-full h-full object-cover transition-transform duration-1000 ${
                         !isLocked
-                          ? 'group-hover:scale-110'
-                          : 'blur-xl grayscale'
+                          ? 'group-hover:scale-110 brightness-75'
+                          : 'blur-2xl grayscale opacity-50'
                       }`}
                     />
 
                     {/* Access Level Badge */}
                     <div className="absolute top-4 left-4">
                       <span
-                        className={`text-[9px] font-bold uppercase px-2 py-1 rounded ${
+                        className={`text-[9px] font-black uppercase px-2 py-1 rounded shadow-lg ${
                           lesson.accessLevel === 'Premium'
                             ? 'bg-[#E5A93C] text-black'
-                            : 'bg-white/10 text-white backdrop-blur-md'
+                            : 'bg-white/10 text-white backdrop-blur-md border border-white/10'
                         }`}
                       >
                         {lesson.accessLevel}
                       </span>
                     </div>
 
-                    {/* Lockdown Overlay for Free Users */}
+                    {/* Lockdown Overlay for Free/Guest Users */}
                     {isLocked && (
-                      <div className="absolute inset-0 bg-[#0A0908]/60 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center">
-                        <FiLock className="text-[#E5A93C] text-2xl mb-2 animate-pulse" />
-                        <h4 className="text-white font-serif text-sm">
-                          Premium Lesson
+                      <div className="absolute inset-0 bg-[#0A0908]/40 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center">
+                        <FiLock className="text-[#E5A93C] text-3xl mb-2 animate-bounce" />
+                        <h4 className="text-white font-serif text-sm font-bold uppercase tracking-widest">
+                          Premium Content
                         </h4>
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            router.push('/dashboard/pricing');
-                          }}
-                          className="mt-2 text-[10px] font-mono text-[#E5A93C] underline uppercase tracking-tighter"
-                        >
-                          Upgrade to view
-                        </button>
+                        <p className="text-[10px] text-[#E5A93C] mt-1 font-mono uppercase">
+                          Click to Upgrade
+                        </p>
                       </div>
                     )}
                   </div>
 
-                  {/* Card Body Content */}
+                  {/* Card Body */}
                   <div className="p-6 flex flex-col flex-grow">
                     <div className="flex items-center gap-2 text-[10px] font-mono text-[#8C8275] uppercase tracking-wider mb-3">
                       <FiTag className="text-[#E5A93C]" /> {lesson.category}
                     </div>
 
                     <h3
-                      className={`text-xl font-serif text-white mb-4 line-clamp-2 leading-snug transition-colors ${
+                      className={`text-xl font-serif text-white mb-4 line-clamp-2 leading-tight transition-colors ${
                         !isLocked ? 'group-hover:text-[#E5A93C]' : 'opacity-40'
                       }`}
                     >
@@ -210,14 +197,13 @@ export default function PublicLessonsPage() {
                     </h3>
 
                     <p
-                      className={`text-[#8C8275] text-sm font-serif italic mb-6 line-clamp-3 leading-relaxed ${
-                        isLocked ? 'opacity-20' : ''
+                      className={`text-[#8C8275] text-sm font-serif italic mb-6 line-clamp-3 leading-relaxed flex-grow ${
+                        isLocked ? 'opacity-10' : ''
                       }`}
                     >
                       "{lesson.description}"
                     </p>
 
-                    {/* Footer: Creator Info & Interaction */}
                     <div className="mt-auto pt-6 border-t border-[#1A1612] flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <img
@@ -225,11 +211,11 @@ export default function PublicLessonsPage() {
                             lesson.author?.image ||
                             'https://via.placeholder.com/150'
                           }
-                          className="w-6 h-6 rounded-full grayscale group-hover:grayscale-0 transition-all border border-white/5"
+                          className="w-6 h-6 rounded-full grayscale group-hover:grayscale-0 transition-all"
                           alt="creator"
                         />
                         <span className="text-[10px] text-white uppercase tracking-tighter font-mono">
-                          {lesson.author?.name?.split(' ')[0] || 'Unknown'}
+                          {lesson.author?.name?.split(' ')[0]}
                         </span>
                       </div>
 
@@ -238,8 +224,8 @@ export default function PublicLessonsPage() {
                           See Details <FiEye />
                         </span>
                       ) : (
-                        <span className="text-[10px] font-mono text-[#5C544A] uppercase">
-                          Locked
+                        <span className="text-[10px] font-mono text-red-500 uppercase font-bold tracking-tighter">
+                          Restricted Access
                         </span>
                       )}
                     </div>

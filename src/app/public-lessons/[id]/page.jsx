@@ -9,12 +9,10 @@ import {
   FiBookmark,
   FiAlertTriangle,
   FiEye,
-  FiLock,
   FiShare2,
   FiInfo,
   FiUser,
   FiSend,
-  FiCheckCircle,
 } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
@@ -37,24 +35,21 @@ export default function PublicLessonDetailPage() {
   const [reportReason, setReportReason] = useState('Inappropriate Content');
 
   const currentUserId = useMemo(() => session?.user?.id || null, [session]);
-  const isPremiumUser = useMemo(
-    () => session?.user?.isPremium || false,
-    [session],
-  );
 
-  // Dynamic Logic
+  // Dynamic Logic: Calculation for reading time
   const readingTime = useMemo(() => {
     if (!lesson?.description) return 1;
     const words = lesson.description.split(/\s+/).length;
     return Math.ceil(words / 200);
   }, [lesson]);
 
+  // Static Views (as per requirement)
   const staticViews = useMemo(
     () => Math.floor(Math.random() * 8000) + 1500,
     [],
   );
 
-  // Fetch Data
+  // Fetch Lesson Details
   useEffect(() => {
     if (!params?.id || isPending) return;
     const fetchDetails = async () => {
@@ -77,7 +72,7 @@ export default function PublicLessonDetailPage() {
     fetchDetails();
   }, [params.id, currentUserId, isPending]);
 
-  // Actions
+  // Interaction: Like Logic
   const handleLike = async () => {
     if (!currentUserId) return router.push('/signin');
     try {
@@ -102,6 +97,7 @@ export default function PublicLessonDetailPage() {
     }
   };
 
+  // Interaction: Favorite Logic
   const handleFavorite = async () => {
     if (!currentUserId) return toast.error('Please login to save to favorites');
     try {
@@ -127,6 +123,7 @@ export default function PublicLessonDetailPage() {
     }
   };
 
+  // Interaction: Comment Logic
   const handlePostComment = async () => {
     if (!newComment.trim()) return;
     try {
@@ -151,7 +148,7 @@ export default function PublicLessonDetailPage() {
     }
   };
 
-  // Function in PublicLessonDetailPage
+  // Interaction: Report Logic
   const handleReport = async (selectedReason, details) => {
     if (!session?.user) return toast.error('Please login to report');
 
@@ -165,7 +162,7 @@ export default function PublicLessonDetailPage() {
             userId: session.user.id,
             userEmail: session.user.email,
             reason: selectedReason,
-            additionalDetails: details, // Requirement: Text field
+            additionalDetails: details,
             lessonTitle: lesson.title,
             timestamp: new Date(),
           }),
@@ -185,7 +182,7 @@ export default function PublicLessonDetailPage() {
     return (
       <div className="min-h-screen bg-[#0A0908] flex flex-col items-center justify-center space-y-4">
         <div className="w-12 h-12 border-4 border-[#E5A93C]/20 border-t-[#E5A93C] rounded-full animate-spin"></div>
-        <p className="text-[#E5A93C] font-mono text-xs uppercase tracking-widest">
+        <p className="text-[#E5A93C] font-mono text-xs uppercase tracking-widest text-center">
           Opening Archives...
         </p>
       </div>
@@ -193,12 +190,10 @@ export default function PublicLessonDetailPage() {
 
   if (!lesson)
     return (
-      <div className="text-white text-center py-20">
-        Lesson entry not found.
+      <div className="text-white text-center py-20 font-serif">
+        Lesson entry not found in the collective archives.
       </div>
     );
-
-  const isLocked = lesson.accessLevel === 'Premium' && !isPremiumUser;
 
   return (
     <motion.div
@@ -207,7 +202,7 @@ export default function PublicLessonDetailPage() {
       className="min-h-screen bg-[#0A0908] text-[#BAB0A3] pb-24"
     >
       <div className="max-w-7xl mx-auto px-6 pt-12">
-        {/* Navigation & Header */}
+        {/* Navigation Header */}
         <div className="flex items-center justify-between mb-12">
           <button
             onClick={() => router.back()}
@@ -231,34 +226,16 @@ export default function PublicLessonDetailPage() {
               {lesson.title}
             </h1>
 
-            {/* Featured Image Section */}
+            {/* Featured Visual Section */}
             <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/5">
               <img
                 src={lesson.image}
-                className={`w-full aspect-video object-cover transition-all duration-1000 ${isLocked ? 'blur-3xl grayscale' : 'brightness-90 hover:scale-105'}`}
+                className="w-full aspect-video object-cover brightness-90 hover:scale-105 transition-all duration-1000"
                 alt="Insight Visual"
               />
-              {isLocked && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0A0908]/70 backdrop-blur-xl p-8 text-center border border-[#E5A93C]/10">
-                  <FiLock className="text-6xl text-[#E5A93C] mb-6 animate-pulse" />
-                  <h3 className="text-3xl font-serif text-white mb-3">
-                    Premium Lesson
-                  </h3>
-                  <p className="text-sm text-[#8C8275] mb-8 max-w-sm leading-relaxed">
-                    This life lesson is restricted to our Premium members.
-                    Upgrade to unlock this wisdom.
-                  </p>
-                  <Link
-                    href="/pricing"
-                    className="bg-[#E5A93C] text-black px-12 py-4 font-bold uppercase text-xs tracking-[0.2em] hover:bg-white transition-all shadow-lg"
-                  >
-                    Upgrade to Premium
-                  </Link>
-                </div>
-              )}
             </div>
 
-            {/* Stats Summary Section (Requirement 4) */}
+            {/* Engagement Statistics */}
             <div className="grid grid-cols-3 bg-[#0F0E0C] border border-[#1A1612] p-8 rounded-xl shadow-inner group">
               <div className="flex flex-col items-center border-r border-[#1A1612]">
                 <FiHeart
@@ -271,7 +248,7 @@ export default function PublicLessonDetailPage() {
                     : lesson.likesCount || 0}
                 </p>
                 <p className="text-[9px] uppercase font-mono text-[#5C544A] tracking-widest">
-                  Like Count
+                  Likes
                 </p>
               </div>
               <div className="flex flex-col items-center border-r border-[#1A1612]">
@@ -283,7 +260,7 @@ export default function PublicLessonDetailPage() {
                   {lesson.favoritesCount || 0}
                 </p>
                 <p className="text-[9px] uppercase font-mono text-[#5C544A] tracking-widest">
-                  Favorites Count
+                  Saves
                 </p>
               </div>
               <div className="flex flex-col items-center">
@@ -292,12 +269,12 @@ export default function PublicLessonDetailPage() {
                   {staticViews.toLocaleString()}
                 </p>
                 <p className="text-[9px] uppercase font-mono text-[#5C544A] tracking-widest">
-                  Views Count
+                  Views
                 </p>
               </div>
             </div>
 
-            {/* Interaction Buttons (Requirement 5) */}
+            {/* Interactive Actions Bar */}
             <div className="flex flex-wrap items-center justify-between border-y border-[#1A1612] py-8">
               <div className="flex items-center gap-10">
                 <button
@@ -312,9 +289,7 @@ export default function PublicLessonDetailPage() {
                     }
                     size={22}
                   />
-                  <span>
-                    {isLiked ? 'Liked' : 'Like'} ({lesson.likesCount || 0})
-                  </span>
+                  <span>{isLiked ? 'Liked' : 'Like'}</span>
                 </button>
                 <button
                   onClick={handleFavorite}
@@ -328,12 +303,12 @@ export default function PublicLessonDetailPage() {
                     }
                     size={22}
                   />
-                  {isFavorited ? 'Saved to Favorites' : 'Save to Favorites'}
+                  <span>{isFavorited ? 'Saved' : 'Save'}</span>
                 </button>
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(window.location.href);
-                    toast.success('Link copied');
+                    toast.success('Link copied to clipboard');
                   }}
                   className="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] hover:text-white transition-all"
                 >
@@ -344,22 +319,20 @@ export default function PublicLessonDetailPage() {
                 onClick={() => setShowReportModal(true)}
                 className="flex items-center gap-2 px-4 py-2 border border-red-500/30 rounded-lg text-[10px] font-mono text-red-500 bg-red-500/5 hover:bg-red-500/20 transition-all uppercase tracking-[0.3em]"
               >
-                <FiAlertTriangle className="animate-pulse" /> Report Lesson
+                <FiAlertTriangle /> Report
               </button>
             </div>
 
-            {/* Lesson Content (Requirement 1) */}
-            {!isLocked && (
-              <div className="prose prose-invert max-w-none text-xl leading-[1.8] font-serif text-[#BAB0A3] space-y-8 first-letter:text-8xl first-letter:text-white first-letter:mr-4 first-letter:float-left first-letter:leading-none">
-                {lesson.description}
-                <blockquote className="border-l-4 border-[#E5A93C] pl-8 py-6 my-16 bg-[#1A1612]/30 italic text-white text-2xl font-serif">
-                  Wisdom is the reward you get for a lifetime of listening when
-                  you would have rather talked.
-                </blockquote>
-              </div>
-            )}
+            {/* Main Content Body */}
+            <div className="prose prose-invert max-w-none text-xl leading-[1.8] font-serif text-[#BAB0A3] space-y-8 first-letter:text-8xl first-letter:text-white first-letter:mr-4 first-letter:float-left first-letter:leading-none">
+              {lesson.description}
+              <blockquote className="border-l-4 border-[#E5A93C] pl-8 py-6 my-16 bg-[#1A1612]/30 italic text-white text-2xl font-serif">
+                "Wisdom is the reward you get for a lifetime of listening when
+                you would have rather talked."
+              </blockquote>
+            </div>
 
-            {/* Comment Section (Requirement 6) */}
+            {/* Discussion / Reflections Section */}
             <div className="space-y-16 mt-20">
               <h3 className="text-4xl font-serif text-white">
                 Reflections ({comments.length})
@@ -378,7 +351,7 @@ export default function PublicLessonDetailPage() {
                     />
                     <button
                       onClick={handlePostComment}
-                      className="bg-blue-600 text-white px-10 py-4 uppercase text-[10px] font-bold tracking-[0.2em] hover:bg-blue-700 flex items-center gap-3 transition-all shadow-lg"
+                      className="bg-blue-600 text-white px-10 py-4 uppercase text-[10px] font-bold tracking-[0.2em] hover:bg-blue-700 flex items-center gap-3 transition-all"
                     >
                       <FiSend /> Post Reflection
                     </button>
@@ -387,11 +360,8 @@ export default function PublicLessonDetailPage() {
               ) : (
                 <div className="bg-[#0F0E0C] border border-dashed border-[#1A1612] p-12 text-center rounded-xl">
                   <p className="text-sm font-mono uppercase tracking-widest text-[#8C8275]">
-                    Reflection Access Restricted. Please{' '}
-                    <Link
-                      href="/signin"
-                      className="text-[#E5A93C] underline hover:text-white transition-colors"
-                    >
+                    Authentication Required. Please{' '}
+                    <Link href="/signin" className="text-[#E5A93C] underline">
                       Sign In
                     </Link>{' '}
                     to share wisdom.
@@ -426,7 +396,7 @@ export default function PublicLessonDetailPage() {
 
           {/* Sidebar Section */}
           <aside className="lg:col-span-4 space-y-16">
-            {/* Author Section (Requirement 3) */}
+            {/* Author Profile Information */}
             <div className="bg-[#0F0E0C] border border-[#1A1612] p-10 rounded-2xl shadow-xl sticky top-28">
               <div className="text-center mb-8">
                 <img
@@ -447,13 +417,13 @@ export default function PublicLessonDetailPage() {
                     {lesson.author?.lessonsCount || 0}
                   </p>
                   <p className="text-[10px] text-[#5C544A] uppercase font-mono mt-1">
-                    Total Lessons Created
+                    Archived Lessons
                   </p>
                 </div>
                 <div>
                   <p className="font-bold text-2xl">{lesson.likesCount}</p>
                   <p className="text-[10px] text-[#5C544A] uppercase font-mono mt-1">
-                    Impact
+                    Impact Score
                   </p>
                 </div>
               </div>
@@ -461,56 +431,33 @@ export default function PublicLessonDetailPage() {
                 href={`/author-profile/${lesson.author?.userId}`}
                 className="block w-full border border-blue-500/30 text-blue-400 py-5 text-[11px] font-bold uppercase tracking-[0.2em] text-center hover:bg-blue-600 hover:text-white transition-all shadow-sm"
               >
-                View all lessons by this author
+                View Contributor Profile
               </Link>
 
-              {/* Metadata Section (Requirement 2) */}
+              {/* Technical Logs / Metadata */}
               <div className="mt-16 space-y-6 pt-16 border-t border-[#1A1612] text-[11px] font-mono tracking-tighter">
                 <h4 className="text-[11px] text-[#5C544A] font-mono uppercase tracking-[0.4em] mb-6 flex items-center gap-3">
-                  <FiInfo /> Internal Logs
+                  <FiInfo /> Internal Records
                 </h4>
                 <div className="flex justify-between items-center mb-4">
-                  <span>CREATED DATE</span>
+                  <span>PUBLISHED DATE</span>
                   <span className="text-white">
                     {new Date(lesson.createdAt).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center mb-4">
-                  <span>READ TIME</span>
-                  <span className="text-white">{readingTime} MINUTES</span>
+                  <span>READ VELOCITY</span>
+                  <span className="text-white">{readingTime} MINS</span>
                 </div>
                 <div className="flex justify-between items-center mb-4">
-                  <span>VISIBILITY</span>
+                  <span>STATUS</span>
                   <span className="text-[#E5A93C]">{lesson.visibility}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>STATION ID</span>
-                  <span className="text-white">
+                  <span>HASH ID</span>
+                  <span className="text-white font-bold">
                     {lesson._id.slice(-8).toUpperCase()}
                   </span>
-                </div>
-              </div>
-
-              {/* Recommended Wisdom (Requirement 7) */}
-              <div className="mt-16 space-y-8 pt-16 border-t border-[#1A1612]">
-                <h4 className="text-[11px] text-[#5C544A] font-mono tracking-[0.4em] uppercase mb-6">
-                  Similar Insights
-                </h4>
-                <div className="space-y-5">
-                  {lesson.recommendedLessons?.slice(0, 4).map((item, idx) => (
-                    <Link
-                      href={`/lessons/${item._id}`}
-                      key={idx}
-                      className="block bg-[#111] border border-[#1A1612] p-6 hover:border-[#E5A93C]/40 transition-all group"
-                    >
-                      <span className="text-[9px] text-emerald-400 font-mono mb-2 block uppercase tracking-widest">
-                        {item.category}
-                      </span>
-                      <h5 className="text-white text-base group-hover:text-[#E5A93C] transition-all font-serif leading-snug">
-                        {item.title}
-                      </h5>
-                    </Link>
-                  ))}
                 </div>
               </div>
             </div>
@@ -518,7 +465,7 @@ export default function PublicLessonDetailPage() {
         </div>
       </div>
 
-      {/* Report Modal Component */}
+      {/* Flagging / Reporting System Modal */}
       <AnimatePresence>
         <ReportModal
           isOpen={showReportModal}
