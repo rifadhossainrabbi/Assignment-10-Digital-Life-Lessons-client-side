@@ -15,8 +15,7 @@ export default function UserFavoritePage() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedTone, setSelectedTone] = useState('');
 
-  // ১. অথেনটিকেশন গার্ড (Redirect Logic)
-  // লোডিং শেষ হওয়ার পর সেশন না থাকলে সরাসরি রিডাইরেক্ট করবে
+  
   if (!authLoading && !session) {
     redirect('/signin');
   }
