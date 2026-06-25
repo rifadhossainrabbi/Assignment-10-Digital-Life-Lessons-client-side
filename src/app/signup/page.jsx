@@ -13,17 +13,13 @@ import { Button } from '@heroui/react';
 const RegisterPage = () => {
   const router = useRouter();
   const [isShowPassword, setIsShowPassword] = useState(false);
-  const [isShowConfirmPassword, setIsShowConfirmPassword] = useState(false); // Confirm password visibility state
   const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
-    watch, // for password match
     formState: { errors },
   } = useForm();
-
-  const passwordValue = watch('password'); // password track
 
   const handleRegisterFunc = async data => {
     setIsLoading(true);
@@ -35,7 +31,7 @@ const RegisterPage = () => {
       password,
       image,
       role: 'user',
-      plan:'free'
+      plan: 'free',
     });
 
     if (error) {
@@ -153,40 +149,6 @@ const RegisterPage = () => {
             {errors.password && (
               <p className="text-red-500 text-xs mt-1">
                 {errors.password.message}
-              </p>
-            )}
-          </fieldset>
-
-          {/* Confirm Password Field */}
-          <fieldset className="fieldset w-full relative">
-            <legend className="fieldset-legend font-semibold text-gray-300 px-2">
-              Confirm Password
-            </legend>
-            <div className="relative">
-              <input
-                type={isShowConfirmPassword ? 'text' : 'password'}
-                className={`input w-full bg-[#1a1a1a] pr-10 border-gray-700 focus:outline-none focus:border-amber-600 rounded-xl py-3 px-4 transition-all ${errors.confirmPassword ? 'border-red-500' : ''}`}
-                placeholder="Confirm your password"
-                {...register('confirmPassword', {
-                  required: 'Please confirm your password',
-                  validate: value =>
-                    value === passwordValue || 'Passwords do not match',
-                })}
-              />
-              <span
-                className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500 hover:text-amber-500 transition-colors"
-                onClick={() => setIsShowConfirmPassword(!isShowConfirmPassword)}
-              >
-                {isShowConfirmPassword ? (
-                  <FaEyeSlash size={18} />
-                ) : (
-                  <FaEye size={18} />
-                )}
-              </span>
-            </div>
-            {errors.confirmPassword && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors.confirmPassword.message}
               </p>
             )}
           </fieldset>

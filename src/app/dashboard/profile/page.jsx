@@ -1,254 +1,295 @@
 'use client';
 
-import React from 'react';
-import { Star, ChevronDown, ArrowRight, Clock, Loader2 } from 'lucide-react';
-import Image from 'next/image';
+import React, { useState, useEffect } from 'react';
+import {
+  FiStar,
+  FiEdit3,
+  FiSave,
+  FiBook,
+  FiHeart,
+  FiUser,
+  FiLoader,
+} from 'react-icons/fi';
 import { authClient } from '@/lib/auth-client';
+import toast, { Toaster } from 'react-hot-toast';
+import { motion } from 'framer-motion';
 
 const UserProfile = () => {
-  // 1. Fetch data from session
   const { data: session, isPending } = authClient.useSession();
+  const user = session?.user;
+  const serverUrl =
+    process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000';
 
-  // 2. Handle loading state
-  if (isPending) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState('');
+  const [photoURL, setPhotoURL] = useState('');
+  const [userLessons, setUserLessons] = useState([]);
+  const [favCount, setFavCount] = useState(0);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+      setPhotoURL(user.image || '');
+
+      fetch(`${serverUrl}/lessons/user/${user.id}`)
+        .then(res => res.json())
+        .then(data => setUserLessons(data))
+        .catch(() => toast.error('Could not load your archive'));
+
+      fetch(`${serverUrl}/favorites/${user.id}`)
+        .then(res => res.json())
+        .then(data => setFavCount(data.length))
+        .catch(() => console.error('Fav count error'));
+    }
+  }, [user, serverUrl]);
+
+  // --- Helper: Get Initials from Name ---
+  const getInitials = fullName => {
+    if (!fullName) return '??';
+    const parts = fullName.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return fullName.slice(0, 2).toUpperCase();
+  };
+
+  // --- Helper: Format Join Date ---
+  const formattedJoinDate = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric',
+      })
+    : 'Unknown';
+
+  const handleUpdateProfile = async () => {
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`${serverUrl}/admin/profile/update/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, image: photoURL }),
+      });
+
+      if (res.ok) {
+        toast.success('Profile updated in the archives');
+        setIsEditing(false);
+        window.location.reload();
+      }
+    } catch (err) {
+      toast.error('Archive sync failed');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  if (isPending)
     return (
-      <div className="min-h-screen bg-[#0d0d0b] flex items-center justify-center">
-        <Loader2 className="text-amber-500 animate-spin" size={40} />
+      <div className="min-h-screen bg-[#0F0D0A] flex items-center justify-center">
+        <FiLoader className="text-[#E5A93C] animate-spin" size={40} />
       </div>
     );
-  }
-
-  // 3. User variables
-  const user = session?.user;
-  const isPremium = user?.isPremium || false;
-
-  // Static lesson data (to be replaced with DB data)
-  const lessons = [
-    {
-      title: 'The Architecture of Silence',
-      category: 'PHILOSOPHY',
-      desc: 'How to build mental sanctuaries in an age...',
-      time: '12 min read',
-      img: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=500',
-    },
-    {
-      title: 'The Soul in the Machine',
-      category: 'AESTHETICS',
-      desc: 'Evaluating the moral landscape of...',
-      time: '18 min read',
-      img: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=500',
-    },
-    {
-      title: 'Digital Minimalism',
-      category: 'PRODUCTIVITY',
-      desc: 'A framework for choosing the few tool...',
-      time: '8 min read',
-      img: 'https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?q=80&w=500',
-    },
-    {
-      title: 'The Ripple of Intent',
-      category: 'PSYCHOLOGY',
-      desc: 'Understanding how micro-decisions in ou...',
-      time: '15 min read',
-      img: 'https://images.unsplash.com/photo-1518066000714-58c45f1a2c0a?q=80&w=500',
-    },
-  ];
 
   return (
-    <div className="min-h-screen bg-[#0d0d0b] text-gray-300 font-sans px-4 py-8 sm:px-6 md:p-12">
+    <div className="min-h-screen bg-[#0F0D0A] text-[#E6DFD3] p-6 md:p-12 font-sans">
+      <Toaster />
       <div className="max-w-7xl mx-auto">
-        {/* --- Header Section (Responsive Flex) --- */}
-        <header className="flex flex-col items-center text-center md:flex-row md:items-start md:text-left gap-6 md:gap-10 mb-12 md:mb-16">
-          <div className="relative shrink-0">
-            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 border-amber-600/30 ring-4 ring-amber-500/5 shadow-2xl">
-              <Image
-                src={user?.image || 'https://i.pravatar.cc/150'}
-                alt={user?.name || 'User Profile'}
-                width={128}
-                height={128}
-                className="object-cover w-full h-full"
+        {/* --- PROFILE HEADER --- */}
+        <section className="bg-[#14110C] border border-[#231E15] rounded-2xl p-8 md:p-12 mb-12 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#E5A93C]/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+
+          <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
+            {/* Avatar Logic: Image vs Initials */}
+            <div className="relative group">
+              <div className="w-32 h-32 md:w-44 md:h-44 rounded-full overflow-hidden border-4 border-[#231E15] ring-2 ring-[#E5A93C]/20 flex items-center justify-center bg-[#1A1612]">
+                {photoURL ? (
+                  <img
+                    src={photoURL}
+                    alt={user?.name}
+                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
+                  />
+                ) : (
+                  <span className="text-4xl md:text-6xl font-serif text-[#E5A93C] tracking-tighter">
+                    {getInitials(user?.name)}
+                  </span>
+                )}
+              </div>
+              {user?.plan === 'premium' && (
+                <div className="absolute bottom-2 right-2 bg-[#E5A93C] p-2 rounded-full text-black shadow-lg">
+                  <FiStar size={18} fill="currentColor" />
+                </div>
+              )}
+            </div>
+
+            <div className="flex-grow text-center md:text-left">
+              {isEditing ? (
+                <div className="space-y-4 max-w-md mx-auto md:mx-0">
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    className="w-full bg-[#0F0D0A] border border-[#231E15] p-3 rounded-lg outline-none focus:border-[#E5A93C] transition-all text-sm"
+                    placeholder="Update Name"
+                  />
+                  <input
+                    type="text"
+                    value={photoURL}
+                    onChange={e => setPhotoURL(e.target.value)}
+                    className="w-full bg-[#0F0D0A] border border-[#231E15] p-3 rounded-lg outline-none focus:border-[#E5A93C] transition-all text-sm"
+                    placeholder="Photo URL"
+                  />
+                  <div className="flex gap-3 justify-center md:justify-start">
+                    <button
+                      onClick={handleUpdateProfile}
+                      disabled={isUpdating}
+                      className="bg-[#E5A93C] text-black px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-white transition-all"
+                    >
+                      {isUpdating ? (
+                        <FiLoader className="animate-spin" />
+                      ) : (
+                        <FiSave />
+                      )}{' '}
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="bg-transparent border border-[#231E15] text-[#5C544A] px-6 py-2 rounded-lg text-xs font-bold uppercase hover:text-white transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-col md:flex-row items-center gap-3">
+                    <h1 className="text-3xl md:text-5xl font-serif text-white">
+                      {user?.name}
+                    </h1>
+                    {user?.plan === 'premium' && (
+                      <span className="text-[10px] font-mono text-[#E5A93C] bg-[#E5A93C]/10 px-3 py-1 rounded-full uppercase tracking-widest border border-[#E5A93C]/20">
+                        Premium ⭐
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[#5C544A] font-mono text-sm mt-2">
+                    {user?.email}
+                  </p>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="mt-6 flex items-center gap-2 text-[#E5A93C] hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"
+                  >
+                    <FiEdit3 /> Edit Archive Identity
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* --- STATS SECTION --- */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+          <div className="bg-[#14110C] border border-[#231E15] p-8 rounded-xl group hover:border-[#E5A93C]/30 transition-all">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-4xl font-serif text-[#E5A93C]">
+                  {userLessons.length}
+                </h3>
+                <p className="text-[10px] uppercase font-mono text-[#5C544A] tracking-widest mt-2">
+                  Lessons Created
+                </p>
+              </div>
+              <FiBook
+                className="text-[#231E15] group-hover:text-[#E5A93C] transition-colors"
+                size={24}
               />
             </div>
-            {isPremium && (
-              <div className="absolute bottom-1 right-1 bg-amber-500 p-1.5 rounded-full text-black shadow-lg">
-                <Star size={14} fill="currentColor" />
+          </div>
+
+          <div className="bg-[#14110C] border border-[#231E15] p-8 rounded-xl group hover:border-[#E5A93C]/30 transition-all">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-4xl font-serif text-[#E5A93C]">
+                  {favCount}
+                </h3>
+                <p className="text-[10px] uppercase font-mono text-[#5C544A] tracking-widest mt-2">
+                  Saved in Favorites
+                </p>
               </div>
-            )}
-          </div>
-
-          <div className="flex-grow">
-            <div className="flex flex-col items-center md:items-start gap-2">
-              {isPremium && (
-                <span className="bg-amber-600/20 text-amber-500 text-[9px] sm:text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-amber-500/20">
-                  Premium Member ⭐
-                </span>
-              )}
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-white tracking-tight mt-1">
-                {user?.name || 'Mysterious Seeker'}
-              </h1>
-            </div>
-            <p className="max-w-xl text-gray-500 text-xs sm:text-sm leading-relaxed italic mt-4 px-2 md:px-0">
-              <span className="text-amber-700/60 not-italic block mb-1">
-                {user?.email}
-              </span>
-              Exploring the intersection of ancient wisdom and modern digital
-              insights. Always learning, always growing.
-            </p>
-
-            <div className="mt-6">
-              <button className="w-full sm:w-auto bg-[#ffb247] hover:bg-amber-500 text-black px-8 py-3 rounded-full font-bold text-sm transition-all duration-300 shadow-lg shadow-amber-500/10 active:scale-95">
-                Follow Wisdom
-              </button>
+              <FiHeart
+                className="text-[#231E15] group-hover:text-rose-500 transition-colors"
+                size={24}
+              />
             </div>
           </div>
-        </header>
 
-        {/* --- Stats Section (Responsive Grid) --- */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-12 md:mb-20">
-          <div className="bg-[#141412] p-6 sm:p-8 rounded-xl border border-white/5 text-center sm:text-left hover:border-amber-500/20 transition-all">
-            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#ffb247]">
-              12
-            </h2>
-            <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-gray-600 mt-2">
-              Lessons Contributed
-            </p>
-          </div>
-
-          <div className="bg-[#141412] p-6 sm:p-8 rounded-xl border border-white/5 text-center sm:text-left hover:border-amber-500/20 transition-all">
-            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#ffb247]">
-              342
-            </h2>
-            <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-gray-600 mt-2">
-              Wisdom Favorites
-            </p>
-          </div>
-
-          <div className="bg-[#141412] p-6 sm:p-8 rounded-xl border border-white/5 flex items-center justify-between sm:col-span-2 lg:col-span-1 hover:border-amber-500/20 transition-all">
-            <div className="text-left">
-              <h3 className="text-amber-500 font-bold text-xs sm:text-sm">
-                Mastery Progress
-              </h3>
-              <p className="text-[10px] sm:text-xs text-gray-600 mt-1">
-                Journey to Elder status.
+          <div className="bg-[#14110C] border border-[#231E15] p-8 rounded-xl flex items-center gap-4 sm:col-span-2 lg:col-span-1">
+            <div className="w-12 h-12 bg-[#E5A93C]/10 rounded-full flex items-center justify-center text-[#E5A93C]">
+              <FiUser />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-widest text-[#E6DFD3]">
+                Active Author Since
+              </h4>
+              <p className="text-[10px] font-mono text-[#E5A93C] mt-1 italic font-bold">
+                {formattedJoinDate}
               </p>
-            </div>
-            <div className="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0">
-              <svg className="w-full h-full" viewBox="0 0 36 36">
-                <path
-                  className="text-gray-800"
-                  strokeWidth="3"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <path
-                  className="text-[#ffb247]"
-                  strokeWidth="3"
-                  strokeDasharray="45, 100"
-                  strokeLinecap="round"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">
-                45%
-              </span>
             </div>
           </div>
         </div>
 
-        {/* --- Shared Wisdom Section (Dynamic Card Grid) --- */}
-        <section className="mb-12 md:mb-20">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-10">
-            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-white">
-              Your Sanctuary
+        {/* --- MY LESSONS GRID --- */}
+        <section>
+          <div className="flex items-center justify-between mb-10 border-b border-[#231E15] pb-4">
+            <h2 className="text-2xl font-serif text-white italic">
+              Public Contributions
             </h2>
-            <div className="flex gap-4 sm:gap-6 text-[10px] uppercase tracking-widest font-bold">
-              <button className="flex items-center gap-2 text-amber-500 hover:text-amber-400 transition-colors">
-                Latest <ChevronDown size={14} />
-              </button>
-              <button className="flex items-center gap-2 text-gray-600 hover:text-gray-400 transition-colors">
-                Popular <ChevronDown size={14} />
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-6">
-            {lessons.map((lesson, idx) => (
-              <div key={idx} className="group cursor-pointer">
-                <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-4 border border-white/5">
-                  <Image
-                    src={lesson.img}
-                    alt={lesson.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-700 brightness-75"
-                  />
-                  <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-[8px] font-bold text-amber-500 tracking-tighter uppercase">
-                    {lesson.category}
-                  </div>
-                </div>
-                <h3 className="text-base sm:text-lg font-serif font-bold text-white group-hover:text-[#ffb247] transition-colors leading-tight line-clamp-1">
-                  {lesson.title}
-                </h3>
-                <p className="text-xs text-gray-500 mt-2 leading-relaxed line-clamp-2 min-h-[2.5rem]">
-                  {lesson.desc}
-                </p>
-                <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/5">
-                  <span className="text-[10px] text-gray-600 flex items-center gap-1">
-                    <Clock size={10} /> {lesson.time}
-                  </span>
-                  <ArrowRight
-                    size={14}
-                    className="text-amber-600 group-hover:translate-x-1 transition-transform"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* --- Footer Section (Responsive Wrap) --- */}
-        <footer className="pt-12 border-t border-amber-900/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
-          <div className="w-full md:w-auto text-center md:text-left">
-            <h2 className="text-xl font-serif font-bold text-[#ffb247]">
-              Digital Life Lessons
-            </h2>
-            <p className="text-[9px] sm:text-[10px] text-gray-600 mt-2 italic tracking-widest uppercase">
-              © {new Date().getFullYear()} Digital Life Lessons • All Chapters
-              Reserved
+            <p className="text-[10px] font-mono text-[#5C544A] uppercase tracking-widest">
+              Archive Collection
             </p>
           </div>
 
-          <div className="flex flex-wrap justify-center md:justify-end gap-10 sm:gap-16 w-full md:w-auto">
-            <div className="space-y-3">
-              <h4 className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">
-                Platform
-              </h4>
-              <ul className="space-y-2">
-                <li className="text-[11px] text-gray-500 hover:text-white cursor-pointer transition-colors">
-                  Digital Ethics
-                </li>
-                <li className="text-[11px] text-gray-500 hover:text-white cursor-pointer transition-colors">
-                  The Vault
-                </li>
-              </ul>
+          {userLessons.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {userLessons
+                .filter(l => l.visibility === 'Public')
+                .map(lesson => (
+                  <motion.div
+                    key={lesson._id}
+                    whileHover={{ y: -5 }}
+                    className="bg-[#14110C] border border-[#231E15] rounded-xl overflow-hidden group"
+                  >
+                    <div className="relative aspect-video overflow-hidden">
+                      <img
+                        src={lesson.image}
+                        alt={lesson.title}
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700 opacity-60 group-hover:opacity-100"
+                      />
+                      <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[8px] font-mono text-[#E5A93C] uppercase tracking-tighter">
+                        {lesson.category}
+                      </div>
+                    </div>
+                    <div className="p-5">
+                      <h4 className="text-sm font-serif text-white line-clamp-1 group-hover:text-[#E5A93C] transition-colors">
+                        {lesson.title}
+                      </h4>
+                      <p className="text-[10px] text-[#5C544A] font-mono mt-2 flex items-center gap-2">
+                        {lesson.accessLevel === 'Premium' ? (
+                          <FiStar className="text-[#E5A93C]" />
+                        ) : (
+                          <FiStar />
+                        )}{' '}
+                        {lesson.accessLevel}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
             </div>
-            <div className="space-y-3">
-              <h4 className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">
-                Legal
-              </h4>
-              <ul className="space-y-2">
-                <li className="text-[11px] text-gray-500 hover:text-white cursor-pointer transition-colors">
-                  Terms Scroll
-                </li>
-                <li className="text-[11px] text-gray-500 hover:text-white cursor-pointer transition-colors">
-                  Privacy Shield
-                </li>
-              </ul>
+          ) : (
+            <div className="py-20 text-center border-2 border-dashed border-[#231E15] rounded-2xl text-[#5C544A] font-mono text-sm uppercase tracking-widest">
+              No public entries found in your archive.
             </div>
-          </div>
-        </footer>
+          )}
+        </section>
       </div>
     </div>
   );
