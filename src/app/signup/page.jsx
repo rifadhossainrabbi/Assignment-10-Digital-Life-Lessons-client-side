@@ -35,6 +35,7 @@ const RegisterPage = () => {
       password,
       image,
       role: 'user',
+      plan:'free'
     });
 
     if (error) {
