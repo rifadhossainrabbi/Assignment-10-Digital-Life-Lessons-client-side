@@ -6,6 +6,7 @@ import { FiSearch, FiLock, FiEye, FiTag } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/auth-client';
 import { getLessons } from '@/lib/api/getlessons';
+import Image from 'next/image';
 
 export default function PublicLessonsPage() {
   const { data: session } = authClient.useSession();
@@ -145,7 +146,8 @@ export default function PublicLessonsPage() {
                   <div className="relative h-48 overflow-hidden">
                     <img
                       src={
-                        lesson.image || 'https://via.placeholder.com/800x450'
+                        lesson.image ||
+                        'https://i.ibb.co.com/dsP7SWMQ/no-image2.jpg'
                       }
                       alt={lesson.title}
                       className={`w-full h-full object-cover transition-transform duration-1000 ${
@@ -184,8 +186,14 @@ export default function PublicLessonsPage() {
 
                   {/* Card Body */}
                   <div className="p-6 flex flex-col flex-grow">
-                    <div className="flex items-center gap-2 text-[10px] font-mono text-[#8C8275] uppercase tracking-wider mb-3">
-                      <FiTag className="text-[#E5A93C]" /> {lesson.category}
+                    <div className="flex justify-between">
+                      <div className="flex items-center gap-2 text-[10px] font-mono text-[#8C8275] uppercase tracking-wider mb-3">
+                        <FiTag className="text-[#E5A93C]" /> {lesson.category}
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-mono text-[#8C8275] uppercase tracking-wider mb-3">
+                        <FiTag className="text-[#E5A93C]" />{' '}
+                        {lesson.emotionalTone}
+                      </div>
                     </div>
 
                     <h3
@@ -197,12 +205,16 @@ export default function PublicLessonsPage() {
                     </h3>
 
                     <p
-                      className={`text-[#8C8275] text-sm font-serif italic mb-6 line-clamp-3 leading-relaxed flex-grow ${
+                      className={`text-[#8C8275] text-sm font-serif italic mb-1 line-clamp-3 leading-relaxed flex-grow ${
                         isLocked ? 'opacity-10' : ''
                       }`}
                     >
-                      "{lesson.description}"
+                      {lesson.description}
                     </p>
+                    <div className='flex justify-between'>
+                      <h3>Create</h3>
+                      <p>{new Date(lesson.createdAt).toLocaleDateString()}</p>
+                    </div>
 
                     <div className="mt-auto pt-6 border-t border-[#1A1612] flex items-center justify-between">
                       <div className="flex items-center gap-2">

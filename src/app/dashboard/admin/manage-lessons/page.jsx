@@ -3,7 +3,7 @@ import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import Link from 'next/link'; 
+import Link from 'next/link';
 import {
   FaTrashAlt,
   FaStar,
@@ -14,8 +14,37 @@ import {
   FaArchive,
   FaFlag,
   FaUser,
-  FaExternalLinkAlt, // Added icon to indicate clickability
+  FaExternalLinkAlt,
+  FaExclamationTriangle,
 } from 'react-icons/fa';
+
+// Confirmation Modal Component for deleting lessons
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#111] border border-gray-800 p-8 rounded-2xl w-full max-w-sm text-center">
+        <FaExclamationTriangle className="text-red-500 text-4xl mx-auto mb-4" />
+        <h3 className="text-white font-black text-xl mb-2">{title}</h3>
+        <p className="text-gray-400 text-sm mb-8">{message}</p>
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 text-[10px] font-bold uppercase border border-gray-700 hover:bg-gray-800 text-white rounded-lg"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-3 text-[10px] font-black uppercase bg-red-600 text-white rounded-lg"
+          >
+            Purge Record
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ManageLessonsPageByAdmin = () => {
   const [lessons, setLessons] = useState([]);
@@ -28,6 +57,8 @@ const ManageLessonsPageByAdmin = () => {
   });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
+  const [modal, setModal] = useState({ isOpen: false, lesson: null });
+
   const { data: session, isPending } = authClient.useSession();
   const router = useRouter();
 
@@ -36,7 +67,7 @@ const ManageLessonsPageByAdmin = () => {
     fetchLessons();
   }, []);
 
-  // Auth Guard: Redirect if session is lost or not an admin
+  // Auth Guard: Redirect if session is lost
   useEffect(() => {
     if (!isPending && !session) {
       router.replace('/signin');
@@ -60,7 +91,7 @@ const ManageLessonsPageByAdmin = () => {
     }
   };
 
-  // Requirement: Update "isFeatured" or "isReviewed" status
+  // Update "isFeatured" or "isReviewed" status
   const handleUpdateStatus = async (id, field, currentValue) => {
     try {
       const response = await fetch(
@@ -81,16 +112,12 @@ const ManageLessonsPageByAdmin = () => {
     }
   };
 
-  // Requirement: Delete inappropriate lessons with confirmation popup
-  const handleDeleteLesson = async (id, title) => {
-    const isConfirmed = window.confirm(
-      `CRITICAL ACTION: Permanently wipe lesson "${title}" from registry?`,
-    );
-    if (!isConfirmed) return;
-
+  // Delete inappropriate lessons with modal confirmation
+  const handleDeleteLesson = async () => {
+    const { lesson } = modal;
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/lessons/${id}`,
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/lessons/${lesson._id}`,
         { method: 'DELETE' },
       );
       if (response.ok) {
@@ -100,9 +127,10 @@ const ManageLessonsPageByAdmin = () => {
     } catch (err) {
       toast.error('Purge sequence failed');
     }
+    setModal({ isOpen: false, lesson: null });
   };
 
-  // Requirement: Filter by Category, Visibility, Featured, or Flagged
+  // Filter lessons based on selected criteria
   const filteredLessons = lessons.filter(l => {
     if (filter === 'All') return true;
     if (filter === 'Public' || filter === 'Private')
@@ -124,8 +152,15 @@ const ManageLessonsPageByAdmin = () => {
     <div className="p-4 md:p-8 lg:p-12 bg-[#0a0a0a] min-h-screen text-white font-sans selection:bg-[#d4af37] selection:text-black">
       <Toaster position="top-right" />
 
+      <ConfirmationModal
+        isOpen={modal.isOpen}
+        onClose={() => setModal({ isOpen: false, lesson: null })}
+        onConfirm={handleDeleteLesson}
+        title="Confirm Purge"
+        message={`CRITICAL ACTION: Permanently wipe lesson "${modal.lesson?.title}" from registry?`}
+      />
+
       <div className="max-w-7xl mx-auto">
-        {/* Header and Stats Display */}
         <header className="mb-10 border-b border-gray-800 pb-8">
           <h2 className="text-2xl md:text-4xl font-black tracking-tighter text-white uppercase mb-8 flex items-center gap-4">
             <FaArchive className="text-[#d4af37]" /> Lesson{' '}
@@ -168,7 +203,6 @@ const ManageLessonsPageByAdmin = () => {
           </div>
         </header>
 
-        {/* Filtering Control */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#111] p-5 rounded-2xl border border-white/5 mb-8">
           <div className="flex items-center gap-3">
             <FaFilter className="text-[#d4af37] text-xs" />
@@ -182,15 +216,15 @@ const ManageLessonsPageByAdmin = () => {
             value={filter}
           >
             <option value="All">Master Archive</option>
-            <optgroup label="Visibility" className="bg-black text-gray-500">
+            <optgroup label="Visibility">
               <option value="Public">Public Visibility</option>
               <option value="Private">Private Vault</option>
             </optgroup>
-            <optgroup label="Status" className="bg-black text-gray-500">
+            <optgroup label="Status">
               <option value="Featured">Featured Content</option>
               <option value="Flagged">Flagged / Reported</option>
             </optgroup>
-            <optgroup label="Categories" className="bg-black text-gray-500">
+            <optgroup label="Categories">
               <option value="Personal Growth">Personal Growth</option>
               <option value="Career">Career</option>
               <option value="Relationships">Relationships</option>
@@ -200,7 +234,7 @@ const ManageLessonsPageByAdmin = () => {
           </select>
         </div>
 
-        {/* Desktop View: Tables (Data-dense layout) */}
+        {/* Desktop View: Table Layout */}
         <div className="hidden lg:block overflow-hidden rounded-2xl border border-white/5 bg-[#111]">
           <table className="w-full text-left border-collapse">
             <thead className="bg-black/40 text-[9px] uppercase tracking-[3px] text-gray-600 border-b border-gray-800">
@@ -218,33 +252,28 @@ const ManageLessonsPageByAdmin = () => {
                   className="hover:bg-white/[0.01] transition-all group"
                 >
                   <td className="px-8 py-6">
-                    <div>
-                      {/* Navigate to dynamic lesson details page on click */}
-                      <Link
-                        href={`/public-lessons/${lesson._id}`}
-                        className="group/link flex items-center gap-2 max-w-xs"
-                      >
-                        <h3 className="text-sm font-black text-gray-200 group-hover/link:text-[#d4af37] group-hover/link:underline underline-offset-4 transition-all uppercase truncate cursor-pointer">
-                          {lesson.title}
-                        </h3>
-                        <FaExternalLinkAlt className="text-[10px] text-gray-700 group-hover/link:text-[#d4af37] opacity-0 group-hover/link:opacity-100 transition-opacity" />
-                      </Link>
-
-                      <p className="text-[9px] text-gray-600 mt-2 uppercase font-bold flex items-center gap-2">
-                        <FaUser className="text-[8px] text-[#d4af37]" />{' '}
-                        {lesson.author?.name || 'Anonymous_Creator'}
-                      </p>
-                    </div>
+                    <Link
+                      href={`/public-lessons/${lesson._id}`}
+                      className="group/link flex items-center gap-2 max-w-xs"
+                    >
+                      <h3 className="text-sm font-black text-gray-200 group-hover/link:text-[#d4af37] underline-offset-4 uppercase truncate">
+                        {lesson.title}
+                      </h3>
+                      <FaExternalLinkAlt className="text-[10px] text-gray-700" />
+                    </Link>
+                    <p className="text-[9px] text-gray-600 mt-2 uppercase font-bold flex items-center gap-2">
+                      <FaUser className="text-[8px] text-[#d4af37]" />{' '}
+                      {lesson.author?.name || 'Anonymous_Creator'}
+                    </p>
                   </td>
                   <td className="px-6 py-6">
-                    <span className="text-[9px] font-black border border-gray-800 px-3 py-1 text-gray-500 uppercase tracking-widest bg-black rounded-full">
+                    <span className="text-[9px] font-black border border-gray-800 px-3 py-1 text-gray-500 uppercase bg-black rounded-full">
                       {lesson.category}
                     </span>
                   </td>
                   <td className="px-6 py-6">
                     <div className="flex justify-center gap-5 text-base">
                       <div
-                        title="Visibility"
                         className={
                           lesson.visibility === 'Public'
                             ? 'text-emerald-500'
@@ -258,7 +287,6 @@ const ManageLessonsPageByAdmin = () => {
                         )}
                       </div>
                       <div
-                        title="Reviewed Status"
                         className={
                           lesson.isReviewed ? 'text-blue-500' : 'text-gray-800'
                         }
@@ -266,7 +294,6 @@ const ManageLessonsPageByAdmin = () => {
                         <FaCheckCircle />
                       </div>
                       <div
-                        title="Featured Status"
                         className={
                           lesson.isFeatured ? 'text-[#d4af37]' : 'text-gray-800'
                         }
@@ -285,8 +312,9 @@ const ManageLessonsPageByAdmin = () => {
                             lesson.isFeatured,
                           )
                         }
-                        className={`text-[9px] font-black border px-3 py-2 uppercase tracking-tighter transition-all ${lesson.isFeatured ? 'border-[#d4af37] text-[#d4af37] bg-[#d4af37]/5' : 'border-gray-800 text-gray-600 hover:border-gray-500'}`}
+                        className={`text-[9px] font-black border px-3 py-2 uppercase ${lesson.isFeatured ? 'border-[#d4af37] text-[#d4af37]' : 'border-gray-800 text-gray-600'}`}
                       >
+                        {' '}
                         {lesson.isFeatured ? 'FEATURED' : 'MARK FEATURED'}
                       </button>
                       <button
@@ -297,15 +325,13 @@ const ManageLessonsPageByAdmin = () => {
                             lesson.isReviewed,
                           )
                         }
-                        className={`text-[9px] font-black border px-3 py-2 uppercase tracking-tighter transition-all ${lesson.isReviewed ? 'border-blue-500 text-blue-500 bg-blue-500/5' : 'border-gray-800 text-gray-600 hover:border-gray-500'}`}
+                        className={`text-[9px] font-black border px-3 py-2 uppercase ${lesson.isReviewed ? 'border-blue-500 text-blue-500' : 'border-gray-800 text-gray-600'}`}
                       >
-                        {lesson.isReviewed ? 'APPROVED' : 'REVIEW'}
+                        {lesson.isReviewed ? 'REVIEWED' : 'REVIEW'}
                       </button>
                       <button
-                        onClick={() =>
-                          handleDeleteLesson(lesson._id, lesson.title)
-                        }
-                        className="text-gray-700 hover:text-red-500 transition-colors p-2"
+                        onClick={() => setModal({ isOpen: true, lesson })}
+                        className="text-gray-700 hover:text-red-500 p-2"
                       >
                         <FaTrashAlt size={16} />
                       </button>
@@ -317,58 +343,35 @@ const ManageLessonsPageByAdmin = () => {
           </table>
         </div>
 
-        {/* Mobile View: Card Layout for better accessibility */}
+        {/* Mobile View: Card Layout */}
         <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredLessons.map(lesson => (
             <div
               key={lesson._id}
-              className="bg-[#111] p-6 rounded-2xl border border-white/5 relative"
+              className="bg-[#111] p-6 rounded-2xl border border-white/5"
             >
-              <div className="mb-4">
-                {/* Navigate to dynamic lesson details page on click (Mobile) */}
-                <Link
-                  href={`/public-lessons/${lesson._id}`}
-                  className="group flex items-start justify-between gap-2"
-                >
-                  <h3 className="text-sm font-black text-white uppercase truncate group-hover:text-[#d4af37] transition-colors cursor-pointer group-hover:underline underline-offset-4">
-                    {lesson.title}
-                  </h3>
-                  <FaExternalLinkAlt
-                    className="text-gray-600 group-hover:text-[#d4af37] shrink-0"
-                    size={10}
-                  />
-                </Link>
-                <p className="text-[9px] text-[#d4af37] font-black mt-2 uppercase flex items-center gap-1">
-                  <FaUser size={8} />{' '}
-                  {lesson.author?.name || 'Anonymous_Creator'}
-                </p>
-              </div>
-
-              <div className="flex gap-2 mb-6">
+              <h3 className="text-sm font-black text-white uppercase">
+                {lesson.title}
+              </h3>
+              <div className="flex gap-2 mb-6 mt-2">
                 <span className="text-[8px] font-black bg-black border border-gray-800 px-2 py-1 uppercase">
                   {lesson.category}
                 </span>
-                {lesson.reports?.length > 0 && (
-                  <span className="text-[8px] font-black bg-red-950/20 border border-red-900/30 text-red-500 px-2 py-1 uppercase flex items-center gap-1">
-                    <FaFlag size={8} /> Flagged
-                  </span>
-                )}
               </div>
-
               <div className="flex justify-between items-center pt-4 border-t border-gray-900">
-                <div className="flex gap-4 text-sm">
+                <div className="flex gap-4">
                   <FaEye
                     className={
                       lesson.visibility === 'Public'
                         ? 'text-emerald-500'
                         : 'text-gray-800'
                     }
-                  />
+                  />{' '}
                   <FaCheckCircle
                     className={
                       lesson.isReviewed ? 'text-blue-500' : 'text-gray-800'
                     }
-                  />
+                  />{' '}
                   <FaStar
                     className={
                       lesson.isFeatured ? 'text-[#d4af37]' : 'text-gray-800'
@@ -384,13 +387,13 @@ const ManageLessonsPageByAdmin = () => {
                         lesson.isFeatured,
                       )
                     }
-                    className={`p-2 rounded-lg border transition-colors ${lesson.isFeatured ? 'border-[#d4af37] text-[#d4af37]' : 'border-gray-800 text-gray-600'}`}
+                    className={`p-2 rounded-lg border ${lesson.isFeatured ? 'border-[#d4af37] text-[#d4af37]' : 'border-gray-800 text-gray-600'}`}
                   >
                     <FaStar size={12} />
                   </button>
                   <button
-                    onClick={() => handleDeleteLesson(lesson._id, lesson.title)}
-                    className="p-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/10 transition-colors"
+                    onClick={() => setModal({ isOpen: true, lesson })}
+                    className="p-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/10"
                   >
                     <FaTrashAlt size={12} />
                   </button>
@@ -399,15 +402,6 @@ const ManageLessonsPageByAdmin = () => {
             </div>
           ))}
         </div>
-
-        {/* Empty State */}
-        {filteredLessons.length === 0 && (
-          <div className="py-24 text-center border border-dashed border-gray-800 rounded-3xl mt-10">
-            <p className="text-gray-600 uppercase tracking-[0.4em] text-[10px] font-black italic">
-              NO RECORDS MATCH THE SEARCH PARAMETERS
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

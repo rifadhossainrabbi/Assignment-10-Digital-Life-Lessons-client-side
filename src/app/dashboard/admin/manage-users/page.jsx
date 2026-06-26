@@ -10,12 +10,43 @@ import {
   FaSearch,
   FaShieldAlt,
   FaCrown,
+  FaExclamationTriangle,
 } from 'react-icons/fa';
+
+// Confirmation Modal Component
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#111] border border-gray-800 p-8 rounded-2xl w-full max-w-sm text-center">
+        <FaExclamationTriangle className="text-[#d4af37] text-4xl mx-auto mb-4" />
+        <h3 className="text-white font-black text-xl mb-2">{title}</h3>
+        <p className="text-gray-400 text-sm mb-8">{message}</p>
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 text-[10px] font-bold uppercase border border-gray-700 hover:bg-gray-800 text-white rounded-lg"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-3 text-[10px] font-black uppercase bg-[#d4af37] text-black rounded-lg"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ManageUsersByAdminPage = () => {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState({ isOpen: false, type: '', user: null });
+
   const { data: session, isPending } = authClient.useSession();
   const router = useRouter();
 
@@ -23,14 +54,12 @@ const ManageUsersByAdminPage = () => {
     getUsers();
   }, []);
 
-  // Security Check: Redirect if session is missing
   useEffect(() => {
     if (!isPending && !session) {
       router.replace('/signin');
     }
   }, [session, isPending, router]);
 
-  // Fetch all users from the database
   const getUsers = async () => {
     try {
       const response = await fetch(
@@ -45,18 +74,19 @@ const ManageUsersByAdminPage = () => {
     }
   };
 
-  // Filter users based on Search Term (Name Only)
   const filteredUsers = users.filter(user =>
     user.name?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  // Update user role to Admin
-  const handlePromote = async user => {
-    if (!window.confirm(`Promote ${user.name} to Administrator?`)) return;
+  const handlePromote = async () => {
+    const user = modal.user;
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/users/role/${user._id}`,
-        { method: 'PATCH', headers: { 'Content-Type': 'application/json' } },
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+        },
       );
       const resData = await response.json();
       if (resData.modifiedCount > 0) {
@@ -66,12 +96,11 @@ const ManageUsersByAdminPage = () => {
     } catch (err) {
       toast.error('Failed to promote user.');
     }
+    setModal({ isOpen: false, type: '', user: null });
   };
 
-  // Delete user account permanently
-  const handleDelete = async user => {
-    if (!window.confirm(`Are you sure you want to delete ${user.name}?`))
-      return;
+  const handleDelete = async () => {
+    const user = modal.user;
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/users/${user._id}`,
@@ -87,9 +116,9 @@ const ManageUsersByAdminPage = () => {
     } catch (err) {
       toast.error('Deletion failed.');
     }
+    setModal({ isOpen: false, type: '', user: null });
   };
 
-  // Helper: Get initials for avatar fallback
   const getInitials = name =>
     name ? name.substring(0, 2).toUpperCase() : '??';
 
@@ -103,9 +132,19 @@ const ManageUsersByAdminPage = () => {
   return (
     <div className="p-4 md:p-8 lg:p-12 bg-[#0a0a0a] min-h-screen text-white font-sans">
       <Toaster position="top-right" />
+      <ConfirmationModal
+        isOpen={modal.isOpen}
+        onClose={() => setModal({ isOpen: false, type: '', user: null })}
+        onConfirm={modal.type === 'promote' ? handlePromote : handleDelete}
+        title={modal.type === 'promote' ? 'Promote User' : 'Delete User'}
+        message={
+          modal.type === 'promote'
+            ? `Are you sure you want to promote ${modal.user?.name} to Administrator?`
+            : `This action will permanently remove ${modal.user?.name} from the system. Are you sure?`
+        }
+      />
 
       <div className="max-w-7xl mx-auto">
-        {/* Header and Search Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 border-b border-gray-800 pb-8">
           <div>
             <h2 className="text-2xl md:text-3xl font-black text-[#d4af37] flex items-center gap-3 uppercase tracking-tighter">
@@ -116,7 +155,6 @@ const ManageUsersByAdminPage = () => {
             </p>
           </div>
 
-          {/* Search Box - Specific for Name */}
           <div className="relative w-full md:w-96">
             <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" />
             <input
@@ -129,7 +167,7 @@ const ManageUsersByAdminPage = () => {
           </div>
         </div>
 
-        {/* Desktop View: Table Layout */}
+        {/* Table Layout */}
         <div className="hidden lg:block bg-[#111] border border-white/5 rounded-2xl overflow-hidden">
           <table className="w-full text-left">
             <thead className="bg-black/50 text-[10px] uppercase tracking-widest text-gray-500 border-b border-gray-800">
@@ -149,28 +187,28 @@ const ManageUsersByAdminPage = () => {
                 >
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full border border-gray-700 p-0.5 flex items-center justify-center bg-black overflow-hidden shrink-0">
+                      <div className="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center bg-black overflow-hidden shrink-0">
                         {user.image || user.photoURL ? (
                           <Image
                             width={30}
                             height={30}
                             src={user.image || user.photoURL}
-                            className="w-full h-full rounded-full object-cover grayscale"
-                            alt="user img"
+                            className="w-full h-full object-cover"
+                            alt="user"
                           />
                         ) : (
-                          <span className="text-[10px] font-black text-[#d4af37] font-mono">
+                          <span className="text-[10px] font-black text-[#d4af37]">
                             {getInitials(user.name)}
                           </span>
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-gray-200 uppercase tracking-tight">
+                        <p className="text-sm font-bold text-gray-200 uppercase">
                           {user.name}
                         </p>
                         {user.isPremium && (
                           <span className="text-[8px] text-[#d4af37] font-black uppercase flex items-center gap-1">
-                            <FaCrown size={8} /> Premium Subscriber
+                            <FaCrown size={8} /> Premium
                           </span>
                         )}
                       </div>
@@ -181,7 +219,7 @@ const ManageUsersByAdminPage = () => {
                   </td>
                   <td className="px-8 py-6">
                     <span
-                      className={`text-[9px] font-black px-3 py-1 rounded-full border ${user.role === 'admin' ? 'border-[#d4af37] text-[#d4af37] bg-[#d4af37]/5' : 'border-gray-800 text-gray-500'} uppercase tracking-widest`}
+                      className={`text-[9px] font-black px-3 py-1 rounded-full border ${user.role === 'admin' ? 'border-[#d4af37] text-[#d4af37]' : 'border-gray-800 text-gray-500'}`}
                     >
                       {user.role}
                     </span>
@@ -193,15 +231,20 @@ const ManageUsersByAdminPage = () => {
                     <div className="flex items-center justify-end gap-3">
                       {user.role !== 'admin' && (
                         <button
-                          onClick={() => handlePromote(user)}
-                          className="text-[9px] font-black uppercase tracking-widest border border-gray-700 px-4 py-2 hover:bg-[#d4af37] hover:text-black hover:border-[#d4af37] transition-all"
+                          onClick={() =>
+                            setModal({ isOpen: true, type: 'promote', user })
+                          }
+                          className="text-[9px] font-black uppercase border border-gray-700 px-4 py-2 hover:bg-[#d4af37] hover:text-black transition-all"
                         >
                           Promote
                         </button>
                       )}
                       <button
-                        onClick={() => handleDelete(user)}
-                        className="p-2 text-gray-700 hover:text-red-500 transition-colors"
+                        disabled={session?.user?.id === user._id}
+                        onClick={() =>
+                          setModal({ isOpen: true, type: 'delete', user })
+                        }
+                        className="p-2 text-gray-700 hover:text-red-500 disabled:text-gray-900"
                       >
                         <FaTrashAlt size={16} />
                       </button>
@@ -213,22 +256,22 @@ const ManageUsersByAdminPage = () => {
           </table>
         </div>
 
-        {/* Mobile View: Card Layout */}
+        {/* Mobile View */}
         <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredUsers.map(user => (
             <div
               key={user._id}
-              className="bg-[#111] p-6 rounded-2xl border border-white/5 relative group"
+              className="bg-[#111] p-6 rounded-2xl border border-white/5"
             >
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-full border border-gray-700 p-1 flex items-center justify-center shrink-0">
-                  {user.image || user.photoURL ? (
+                <div className="w-12 h-12 rounded-full border border-gray-700 flex items-center justify-center">
+                  {user.image ? (
                     <Image
-                      width={20}
-                      height={20}
-                      src={user.image || user.photoURL}
-                      className="w-full h-full rounded-full object-cover"
-                      alt="user img"
+                      width={40}
+                      height={40}
+                      src={user.image}
+                      className="rounded-full"
+                      alt="img"
                     />
                   ) : (
                     <span className="text-xs font-black text-[#d4af37]">
@@ -236,54 +279,43 @@ const ManageUsersByAdminPage = () => {
                     </span>
                   )}
                 </div>
-                <div className="truncate">
-                  <h4 className="text-sm font-black text-white uppercase truncate">
+                <div>
+                  <h4 className="text-sm font-black text-white uppercase">
                     {user.name}
                   </h4>
-                  <p className="text-[10px] text-gray-600 font-mono truncate italic">
+                  <p className="text-[10px] text-gray-600 font-mono italic">
                     {user.email}
                   </p>
                 </div>
               </div>
-
               <div className="flex justify-between items-center pt-4 border-t border-gray-800">
-                <div className="flex flex-col">
-                  <span className="text-[8px] text-gray-600 font-black uppercase tracking-widest">
-                    Total Lessons
-                  </span>
-                  <span className="text-xl font-mono font-black text-[#d4af37]">
-                    {user.totalLessons || 0}
-                  </span>
-                </div>
+                <span className="text-xl font-mono font-black text-[#d4af37]">
+                  {user.totalLessons || 0}
+                </span>
                 <div className="flex gap-2">
                   {user.role !== 'admin' && (
                     <button
-                      onClick={() => handlePromote(user)}
-                      className="bg-white/5 p-2 rounded-lg text-[#d4af37] border border-white/5"
+                      onClick={() =>
+                        setModal({ isOpen: true, type: 'promote', user })
+                      }
+                      className="bg-white/5 p-2 rounded-lg text-[#d4af37]"
                     >
                       <FaShieldAlt size={14} />
                     </button>
                   )}
                   <button
-                    onClick={() => handleDelete(user)}
-                    className="bg-red-500/10 p-2 rounded-lg text-red-500 border border-red-500/10"
+                    onClick={() =>
+                      setModal({ isOpen: true, type: 'delete', user })
+                    }
+                    className="p-2 text-gray-700 hover:text-red-500"
                   >
-                    <FaTrashAlt size={14} />
+                    <FaTrashAlt size={16} />
                   </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
-
-        {/* Empty State */}
-        {filteredUsers.length === 0 && (
-          <div className="mt-10 py-20 text-center border border-dashed border-gray-800 rounded-2xl">
-            <p className="text-gray-600 font-black uppercase text-[10px] tracking-[0.4em]">
-              No matching personnel found in registry
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ import {
   FiInfo,
   FiUser,
   FiSend,
+  FiTag,
 } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
@@ -24,7 +25,7 @@ export default function PublicLessonDetailPage() {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
 
-  // State Management
+  // State management
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
@@ -33,29 +34,31 @@ export default function PublicLessonDetailPage() {
   const [newComment, setNewComment] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('Inappropriate Content');
+  const [similarLessons, setSimilarLessons] = useState([]);
 
   const currentUserId = useMemo(() => session?.user?.id || null, [session]);
 
-  // Dynamic Logic: Calculation for reading time
+  // Calculate reading time based on word count
   const readingTime = useMemo(() => {
     if (!lesson?.description) return 1;
     const words = lesson.description.split(/\s+/).length;
     return Math.ceil(words / 200);
   }, [lesson]);
 
-  // Static Views (as per requirement)
+  // Static random view count as per requirement
   const staticViews = useMemo(
     () => Math.floor(Math.random() * 8000) + 1500,
     [],
   );
 
+  // Redirect to signin if not authenticated
   useEffect(() => {
     if (!isPending && !session) {
       router.replace('/signin');
     }
   }, [session, isPending, router]);
 
-  // Fetch Lesson Details
+  // Fetch lesson details including comments, like and favorite status
   useEffect(() => {
     if (!params?.id || isPending) return;
     const fetchDetails = async () => {
@@ -78,7 +81,24 @@ export default function PublicLessonDetailPage() {
     fetchDetails();
   }, [params.id, currentUserId, isPending]);
 
-  // Interaction: Like Logic
+  // Fetch similar lessons after main lesson is loaded
+  useEffect(() => {
+    if (!params?.id) return;
+    const fetchSimilar = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_SERVER_URL}/lessons/${params.id}/similar`,
+        );
+        const data = await res.json();
+        setSimilarLessons(data);
+      } catch (error) {
+        console.error('Similar lessons fetch failed:', error);
+      }
+    };
+    fetchSimilar();
+  }, [params.id]);
+
+  // Toggle like on current lesson
   const handleLike = async () => {
     if (!currentUserId) return router.push('/signin');
     try {
@@ -103,7 +123,7 @@ export default function PublicLessonDetailPage() {
     }
   };
 
-  // Interaction: Favorite Logic
+  // Toggle favorite on current lesson
   const handleFavorite = async () => {
     if (!currentUserId) return toast.error('Please login to save to favorites');
     try {
@@ -129,7 +149,7 @@ export default function PublicLessonDetailPage() {
     }
   };
 
-  // Interaction: Comment Logic
+  // Post a new comment on the current lesson
   const handlePostComment = async () => {
     if (!newComment.trim()) return;
     try {
@@ -154,7 +174,7 @@ export default function PublicLessonDetailPage() {
     }
   };
 
-  // Interaction: Report Logic
+  // Submit a report for inappropriate content
   const handleReport = async (selectedReason, details) => {
     if (!session?.user) return toast.error('Please login to report');
 
@@ -208,7 +228,7 @@ export default function PublicLessonDetailPage() {
       className="min-h-screen bg-[#0A0908] text-[#BAB0A3] pb-24"
     >
       <div className="max-w-7xl mx-auto px-6 pt-12">
-        {/* Navigation Header */}
+        {/* Navigation header with back button and category/tone badges */}
         <div className="flex items-center justify-between mb-12">
           <button
             onClick={() => router.back()}
@@ -232,7 +252,7 @@ export default function PublicLessonDetailPage() {
               {lesson.title}
             </h1>
 
-            {/* Featured Visual Section */}
+            {/* Featured image section */}
             <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/5">
               <img
                 src={lesson.image}
@@ -241,7 +261,7 @@ export default function PublicLessonDetailPage() {
               />
             </div>
 
-            {/* Engagement Statistics */}
+            {/* Engagement statistics: likes, saves, views */}
             <div className="grid grid-cols-3 bg-[#0F0E0C] border border-[#1A1612] p-8 rounded-xl shadow-inner group">
               <div className="flex flex-col items-center border-r border-[#1A1612]">
                 <FiHeart
@@ -280,7 +300,7 @@ export default function PublicLessonDetailPage() {
               </div>
             </div>
 
-            {/* Interactive Actions Bar */}
+            {/* Action buttons: like, save, share, report */}
             <div className="flex flex-wrap items-center justify-between border-y border-[#1A1612] py-8">
               <div className="flex items-center gap-10">
                 <button
@@ -329,16 +349,16 @@ export default function PublicLessonDetailPage() {
               </button>
             </div>
 
-            {/* Main Content Body */}
+            {/* Main lesson content body with drop cap first letter */}
             <div className="prose prose-invert max-w-none text-xl leading-[1.8] font-serif text-[#BAB0A3] space-y-8 first-letter:text-8xl first-letter:text-white first-letter:mr-4 first-letter:float-left first-letter:leading-none">
               {lesson.description}
-              <blockquote className="border-l-4 border-[#E5A93C] pl-8 py-6 my-16 bg-[#1A1612]/30 italic text-white text-2xl font-serif">
+              {/* <blockquote className="border-l-4 border-[#E5A93C] pl-8 py-6 my-16 bg-[#1A1612]/30 italic text-white text-2xl font-serif">
                 "Wisdom is the reward you get for a lifetime of listening when
                 you would have rather talked."
-              </blockquote>
+              </blockquote> */}
             </div>
 
-            {/* Discussion / Reflections Section */}
+            {/* Comment / reflection section */}
             <div className="space-y-16 mt-20">
               <h3 className="text-4xl font-serif text-white">
                 Reflections ({comments.length})
@@ -374,6 +394,8 @@ export default function PublicLessonDetailPage() {
                   </p>
                 </div>
               )}
+
+              {/* List of existing comments */}
               <div className="space-y-12">
                 {comments.map((c, i) => (
                   <div
@@ -398,12 +420,109 @@ export default function PublicLessonDetailPage() {
                 ))}
               </div>
             </div>
+
+            {/* Similar and recommended lessons section (max 6 cards) */}
+            {similarLessons.length > 0 && (
+              <div className="mt-24 pt-16 border-t border-[#1A1612]">
+                <div className="mb-10">
+                  <span className="text-[#E5A93C] font-mono text-xs uppercase tracking-[0.3em] mb-2 block">
+                    You May Also Like
+                  </span>
+                  <h3 className="text-3xl font-serif text-white">
+                    Similar Wisdom
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {similarLessons.map(similar => {
+                    // Lock premium lessons for non-premium users
+                    const isLocked =
+                      similar.accessLevel === 'Premium' &&
+                      session?.user?.plan !== 'premium';
+
+                    return (
+                      <motion.div
+                        key={similar._id}
+                        whileHover={{ y: -5 }}
+                        onClick={() => {
+                          if (isLocked) {
+                            router.push('/pricing');
+                          } else {
+                            router.push(`/public-lessons/${similar._id}`);
+                          }
+                        }}
+                        className="bg-[#0F0E0C] border border-[#1A1612] rounded-2xl overflow-hidden group cursor-pointer hover:border-[#E5A93C]/30 transition-all duration-500 shadow-xl"
+                      >
+                        {/* Card thumbnail */}
+                        <div className="relative h-40 overflow-hidden">
+                          <img
+                            src={
+                              similar.image ||
+                              'https://via.placeholder.com/800x450'
+                            }
+                            alt={similar.title}
+                            className={`w-full h-full object-cover transition-transform duration-700 ${
+                              !isLocked
+                                ? 'group-hover:scale-110 brightness-75'
+                                : 'blur-2xl grayscale opacity-40'
+                            }`}
+                          />
+                          {/* Access level badge */}
+                          <div className="absolute top-3 left-3">
+                            <span
+                              className={`text-[9px] font-black uppercase px-2 py-1 rounded shadow-lg ${
+                                similar.accessLevel === 'Premium'
+                                  ? 'bg-[#E5A93C] text-black'
+                                  : 'bg-white/10 text-white backdrop-blur-md border border-white/10'
+                              }`}
+                            >
+                              {similar.accessLevel}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Card content */}
+                        <div className="p-5">
+                          <div className="flex items-center gap-2 text-[9px] font-mono text-[#8C8275] uppercase tracking-wider mb-2">
+                            <FiTag className="text-[#E5A93C]" />{' '}
+                            {similar.category}
+                          </div>
+                          <h4
+                            className={`text-base font-serif text-white line-clamp-2 leading-snug group-hover:text-[#E5A93C] transition-colors ${isLocked ? 'opacity-40' : ''}`}
+                          >
+                            {similar.title}
+                          </h4>
+                          <div className="mt-4 pt-4 border-t border-[#1A1612] flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <img
+                                src={
+                                  similar.author?.image ||
+                                  'https://via.placeholder.com/150'
+                                }
+                                className="w-5 h-5 rounded-full grayscale group-hover:grayscale-0 transition-all"
+                                alt="author"
+                              />
+                              <span className="text-[9px] text-white uppercase tracking-tighter font-mono">
+                                {similar.author?.name?.split(' ')[0]}
+                              </span>
+                            </div>
+                            <span className="flex items-center gap-1 text-[9px] font-mono text-[#5C544A]">
+                              <FiHeart size={10} /> {similar.likesCount || 0}
+                            </span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Sidebar Section */}
+          {/* Sidebar: author info and lesson metadata */}
           <aside className="lg:col-span-4 space-y-16">
-            {/* Author Profile Information */}
             <div className="bg-[#0F0E0C] border border-[#1A1612] p-10 rounded-2xl shadow-xl sticky top-28">
+              {/* Author profile card */}
               <div className="text-center mb-8">
                 <img
                   src={lesson.author?.image}
@@ -417,6 +536,8 @@ export default function PublicLessonDetailPage() {
                   Verified Insight Provider
                 </p>
               </div>
+
+              {/* Author stats: total lessons and impact score */}
               <div className="grid grid-cols-2 gap-6 border-y border-[#1A1612] py-8 mb-8 text-center text-white">
                 <div>
                   <p className="font-bold text-2xl">
@@ -433,6 +554,8 @@ export default function PublicLessonDetailPage() {
                   </p>
                 </div>
               </div>
+
+              {/* Link to full author profile page */}
               <Link
                 href={`/author-profile/${lesson.author?.userId}`}
                 className="block w-full border border-blue-500/30 text-blue-400 py-5 text-[11px] font-bold uppercase tracking-[0.2em] text-center hover:bg-blue-600 hover:text-white transition-all shadow-sm"
@@ -440,7 +563,7 @@ export default function PublicLessonDetailPage() {
                 View Contributor Profile
               </Link>
 
-              {/* Technical Logs / Metadata */}
+              {/* Internal metadata / technical records */}
               <div className="mt-16 space-y-6 pt-16 border-t border-[#1A1612] text-[11px] font-mono tracking-tighter">
                 <h4 className="text-[11px] text-[#5C544A] font-mono uppercase tracking-[0.4em] mb-6 flex items-center gap-3">
                   <FiInfo /> Internal Records
@@ -449,6 +572,12 @@ export default function PublicLessonDetailPage() {
                   <span>PUBLISHED DATE</span>
                   <span className="text-white">
                     {new Date(lesson.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mb-4">
+                  <span>Update DATE</span>
+                  <span className="text-white">
+                    {new Date(lesson.updatedAt).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center mb-4">
@@ -471,7 +600,7 @@ export default function PublicLessonDetailPage() {
         </div>
       </div>
 
-      {/* Flagging / Reporting System Modal */}
+      {/* Report modal for flagging inappropriate content */}
       <AnimatePresence>
         <ReportModal
           isOpen={showReportModal}

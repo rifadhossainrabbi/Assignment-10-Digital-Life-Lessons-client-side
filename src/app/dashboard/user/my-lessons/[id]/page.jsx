@@ -111,7 +111,11 @@ export default function UpdateLessonPage() {
         toast.success('Image uploaded!', { id: 'upload' });
       }
 
-      const updatedLesson = { ...formData, image: finalImageUrl };
+      const updatedLesson = {
+        ...formData,
+        image: finalImageUrl,
+        updatedAt: new Date(),
+      };
 
       const res = await fetch(`${serverUrl}/lessons/${id}`, {
         method: 'PATCH',

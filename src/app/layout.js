@@ -32,13 +32,13 @@ export default function RootLayout({ children }) {
           reverseOrder={false}
           gutter={8}
           containerStyle={{
-            zIndex: 99999, // নিশ্চিত করে যে এটি সবকিছুর উপরে থাকবে
+            zIndex: 99999,
           }}
           toastOptions={{
             duration: 4000,
             style: {
               background: '#1a1a1a',
-              color: '#d4af37', // গোল্ডেন টেক্সট
+              color: '#d4af37', 
               border: '1px solid #d4af37',
             },
             success: {
