@@ -1,15 +1,33 @@
 import { betterAuth } from 'better-auth';
 import { MongoClient } from 'mongodb';
 import { mongodbAdapter } from 'better-auth/adapters/mongodb';
-import { role } from 'better-auth/client';
 
-const client = new MongoClient(process.env.MONGODB_URI);
-const db = client.db(process.env.AUTH_DB_NAME);
+const uri = process.env.MONGODB_URI;
+const dbName = process.env.AUTH_DB_NAME;
+
+if (!uri) {
+  throw new Error('Please add MONGODB_URI to your .env file');
+}
+
+// কানেকশন লিক বন্ধ করতে গ্লোবাল ভেরিয়েবল লজিক
+let client;
+
+if (process.env.NODE_ENV === 'development') {
+  // ডেভেলপমেন্ট মোডে গ্লোবাল ভেরিয়েবল ব্যবহার করা হবে
+  if (!global._mongoClient) {
+    global._mongoClient = new MongoClient(uri);
+  }
+  client = global._mongoClient;
+} else {
+  // প্রোডাকশনে নতুন ক্লায়েন্ট তৈরি হবে
+  client = new MongoClient(uri);
+}
+
+const db = client.db(dbName);
 
 export const auth = betterAuth({
   database: mongodbAdapter(db, {
-    // Optional: if you don't provide a client, database transactions won't be enabled.
-    client,
+    client, // ট্রানজ্যাকশন এনাবল রাখার জন্য
   }),
   emailAndPassword: {
     enabled: true,
@@ -23,11 +41,11 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       role: {
-        default:'user'
+        default: 'user',
       },
       plan: {
-        default:'free'
-      }
-    }
-  }
+        default: 'free',
+      },
+    },
+  },
 });

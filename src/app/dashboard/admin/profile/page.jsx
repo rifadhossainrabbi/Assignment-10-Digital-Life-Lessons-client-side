@@ -11,14 +11,15 @@ import {
   FaFingerprint,
   FaShieldAlt,
 } from 'react-icons/fa';
-import { authClient } from '@/lib/auth-client'; // Import your auth client
+import { authClient } from '@/lib/auth-client';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 const AdminProfilePage = () => {
-  // Access current logged-in user session
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
   const currentUser = session?.user;
+  const router = useRouter();
 
-  // Initialize states for admin data and form control
   const [adminData, setAdminData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -30,10 +31,12 @@ const AdminProfilePage = () => {
     }
   }, [currentUser]);
 
-  /**
-   * Fetch all users and filter the specific admin record
-   * based on role and session email.
-   */
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.replace('/signin');
+    }
+  }, [session, isPending, router]);
+
   const fetchAdminProfile = async () => {
     try {
       const response = await fetch(
@@ -41,7 +44,6 @@ const AdminProfilePage = () => {
       );
       const allUsers = await response.json();
 
-      // Filter logic: Find user where role is 'admin' and email matches session
       const currentAdmin = allUsers.find(
         u => u.role === 'admin' && u.email === currentUser.email,
       );
@@ -50,7 +52,7 @@ const AdminProfilePage = () => {
         setAdminData(currentAdmin);
         setFormData({
           name: currentAdmin.name,
-          image: currentAdmin.image || currentAdmin.photoURL,
+          image: currentAdmin.image || currentAdmin.photoURL || '',
         });
       }
       setLoading(false);
@@ -60,10 +62,6 @@ const AdminProfilePage = () => {
     }
   };
 
-  /**
-   * Handle profile updates (Name and Photo)
-   * via the server-side PATCH route.
-   */
   const handleUpdate = async e => {
     e.preventDefault();
     try {
@@ -79,11 +77,17 @@ const AdminProfilePage = () => {
       if (response.ok) {
         toast.success('Admin profile credentials updated successfully!');
         setIsEditing(false);
-        fetchAdminProfile(); // Refresh data from server
+        fetchAdminProfile();
       }
     } catch (err) {
       toast.error('Registry sync failed');
     }
+  };
+
+  // name er first 2 digit 
+  const getInitials = name => {
+    if (!name) return 'AD';
+    return name.substring(0, 2).toUpperCase();
   };
 
   if (loading)
@@ -112,22 +116,28 @@ const AdminProfilePage = () => {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          {/* Identity Section - User Name, Email, Photo, and Admin Badge */}
+          {/* Identity Section */}
           <div className="lg:col-span-4 bg-gray-900/30 border border-gray-800 p-10 rounded-sm text-center shadow-2xl h-fit">
             <div className="relative inline-block mb-8">
-              <div className="w-40 h-40 rounded-full border-2 border-[#fcd34d]/20 p-2 overflow-hidden bg-black shadow-inner">
-                <img
-                  src={
-                    adminData.image ||
-                    adminData.photoURL ||
-                    'https://i.ibb.co/mJQrykv/user.png'
-                  }
-                  alt="admin"
-                  className="w-full h-full rounded-full object-cover grayscale brightness-75 hover:grayscale-0 hover:brightness-100 transition-all duration-700"
-                />
+              {/* Profile Image Logic */}
+              <div className="w-40 h-40 rounded-full border-2 border-[#fcd34d]/20 p-2 overflow-hidden bg-black shadow-inner flex items-center justify-center">
+                {adminData.image || adminData.photoURL ? (
+                  <Image
+                    width={30}
+                    height={30}
+                    src={adminData.image || adminData.photoURL}
+                    alt="admin"
+                    className="w-full h-full rounded-full object-cover grayscale brightness-75 hover:grayscale-0 hover:brightness-100 transition-all duration-700"
+                  />
+                ) : (
+                  /* image na thkale nam dekhabe */
+                  <div className="text-5xl font-black text-[#fcd34d] font-mono tracking-tighter">
+                    {getInitials(adminData.name)}
+                  </div>
+                )}
               </div>
 
-              {/* Requirement: Official Admin Role Badge */}
+              {/* Official Admin Role Badge */}
               <div className="absolute -bottom-2 -right-2 bg-[#fcd34d] text-black w-10 h-10 rounded-full flex items-center justify-center shadow-lg border-2 border-[#0a0a0a]">
                 <FaShieldAlt size={18} />
               </div>
@@ -154,7 +164,6 @@ const AdminProfilePage = () => {
 
           {/* Details & Activity Section */}
           <div className="lg:col-span-8 space-y-8">
-            {/* Requirement: Activity Summary (Moderation Actions Taken) */}
             <div className="bg-gray-900/20 border border-gray-800 p-8 rounded-sm">
               <h4 className="text-gray-500 text-[10px] font-bold uppercase tracking-[4px] mb-8 flex items-center gap-2">
                 <FaHistory className="text-[#fcd34d]" /> Operational Activity
@@ -180,7 +189,7 @@ const AdminProfilePage = () => {
               </div>
             </div>
 
-            {/* Profile Update Form (Requirement: Option to update display name or photo) */}
+            {/* Profile Update Form */}
             {isEditing && (
               <form
                 onSubmit={handleUpdate}
@@ -205,7 +214,7 @@ const AdminProfilePage = () => {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[9px] uppercase font-bold text-gray-600 tracking-widest ml-1">
-                      Visual Archive URL
+                      Visual Archive URL (Optional)
                     </label>
                     <input
                       type="text"
@@ -213,6 +222,7 @@ const AdminProfilePage = () => {
                       onChange={e =>
                         setFormData({ ...formData, image: e.target.value })
                       }
+                      placeholder="Leave empty to use initials"
                       className="w-full bg-black border border-gray-800 p-4 text-sm text-gray-300 focus:border-[#fcd34d] outline-none transition-all font-mono"
                     />
                   </div>
@@ -226,7 +236,7 @@ const AdminProfilePage = () => {
               </form>
             )}
 
-            {/* Requirement: Account Information Section (Metadata) */}
+            {/* System Registry Metadata */}
             <div className="bg-gray-900/10 border border-gray-800 p-8 rounded-sm">
               <h4 className="text-gray-700 text-[10px] font-bold uppercase tracking-[4px] mb-8">
                 System Registry Metadata

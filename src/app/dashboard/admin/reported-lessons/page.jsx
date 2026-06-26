@@ -1,27 +1,38 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
 import {
   FiTrash2,
   FiEye,
   FiCheckCircle,
   FiAlertTriangle,
   FiX,
-  FiUser,
   FiClock,
-  FiMail,
-  FiMessageSquare,
+  FiSearch,
+  FiExternalLink,
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
+import { authClient } from '@/lib/auth-client';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 const ReportedLessonsPage = () => {
   const [reports, setReports] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState(null);
+  const { data: session, isPending } = authClient.useSession();
+  const router = useRouter();
 
   useEffect(() => {
     fetchReports();
   }, []);
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.replace('/signin');
+    }
+  }, [session, isPending, router]);
 
   const fetchReports = async () => {
     try {
@@ -32,16 +43,14 @@ const ReportedLessonsPage = () => {
       const data = await res.json();
       setReports(data);
     } catch (err) {
-      toast.error('Failed to load reports');
+      toast.error('System synchronization failed');
     } finally {
       setLoading(false);
     }
   };
 
   const handleIgnore = async lessonId => {
-    if (
-      !confirm('Ignore all reports for this lesson? Archive will be cleared.')
-    )
+    if (!confirm('Clear all flags? Archive status will return to normal.'))
       return;
     try {
       await fetch(
@@ -50,15 +59,15 @@ const ReportedLessonsPage = () => {
           method: 'DELETE',
         },
       );
-      toast.success('Reports cleared. Lesson is now safe.');
+      toast.success('Reports cleared successfully');
       fetchReports();
     } catch (err) {
-      toast.error('Action failed');
+      toast.error('Operation failed');
     }
   };
 
   const handleDeleteLesson = async lessonId => {
-    if (!confirm('PERMANENTLY delete this lesson? This cannot be undone.'))
+    if (!confirm('PERMANENTLY purge this lesson? This action is irreversible.'))
       return;
     try {
       await fetch(
@@ -67,183 +76,204 @@ const ReportedLessonsPage = () => {
           method: 'DELETE',
         },
       );
-      toast.success('Lesson and all reports removed permanently');
+      toast.success('Lesson purged successfully');
       fetchReports();
+      setSelectedReport(null);
     } catch (err) {
-      toast.error('Deletion failed');
+      toast.error('Deletion sequence failed');
     }
   };
 
+  const filteredReports = reports.filter(group =>
+    group.lessonTitle?.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
   if (loading)
     return (
-      <div className="p-10 text-white font-mono animate-pulse">
-        Scanning Archive Violations...
+      <div className="min-h-screen bg-[#0F0D0A] flex items-center justify-center text-[#E5A93C] font-mono animate-pulse">
+        SYNCING MODERATION LOGS...
       </div>
     );
 
   return (
-    <div className="p-6 md:p-10 bg-[#0A0908] min-h-screen text-[#BAB0A3]">
-      <div className="mb-10">
-        <h1 className="text-3xl font-serif text-white mb-2 tracking-tight">
-          Reported / Flagged Lessons
-        </h1>
-        <p className="text-[10px] font-mono text-[#5C544A] uppercase tracking-[0.3em]">
-          Moderation Management Console
-        </p>
-      </div>
+    <div className="min-h-screen bg-[#0F0D0A] text-[#E6DFD3] p-4 md:p-12">
+      <Toaster />
 
-      {reports.length === 0 ? (
-        <div className="bg-[#0F0E0C] p-20 text-center border border-[#1A1612] rounded-2xl">
-          <FiCheckCircle className="mx-auto text-4xl text-emerald-500 mb-4 opacity-20" />
-          <p className="font-serif italic text-white">
-            No pending reports. The platform is clean.
-          </p>
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header Section - Matches MyLessonsPage */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <h1 className="text-3xl md:text-5xl font-serif text-[#E6DFD3]">
+              Reported Flags
+            </h1>
+            <p className="text-[10px] text-[#5C544A] mt-2 font-mono uppercase tracking-[0.4em]">
+              Violation & Moderation Intelligence Interface
+            </p>
+          </div>
+          <div className="relative w-full md:w-96">
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5C544A]" />
+            <input
+              type="text"
+              placeholder="SEARCH BY TITLE..."
+              className="w-full bg-[#14110C] border border-[#231E15] rounded-xl py-4 pl-12 pr-4 text-[10px] font-black focus:border-[#E5A93C] outline-none transition-all uppercase tracking-widest text-[#F4EFEA]"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
-      ) : (
-        <div className="overflow-x-auto border border-[#1A1612] rounded-xl bg-[#0F0E0C]">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-[#1A1612] text-[10px] font-mono text-[#8C8275] uppercase tracking-[0.2em]">
-              <tr>
-                <th className="p-5">Lesson Title</th>
-                <th className="p-5">Report Count</th>
-                <th className="p-5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm">
-              {reports.map(group => (
-                <tr
+
+        {filteredReports.length === 0 ? (
+          <div className="text-center py-20 bg-[#14110C] rounded-3xl border border-dashed border-[#231E15]">
+            <FiCheckCircle size={40} className="mx-auto text-[#231E15] mb-4" />
+            <p className="text-[#5C544A] font-serif italic text-lg">
+              Ecosystem safe. No violations recorded.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden lg:block bg-[#14110C] border border-[#231E15] rounded-3xl overflow-hidden shadow-2xl">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-[#231E15] text-[9px] font-black uppercase text-[#5C544A] tracking-widest">
+                    <th className="py-6 px-8">Lesson Metadata</th>
+                    <th className="py-6 px-6">Status</th>
+                    <th className="py-6 px-8 text-right">
+                      Moderation Controls
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#231E15]/30">
+                  {filteredReports.map(group => (
+                    <tr
+                      key={group._id}
+                      className="hover:bg-white/[0.01] transition-colors group"
+                    >
+                      <td className="py-6 px-8">
+                        <Link
+                          href={`/public-lessons/${group._id}`}
+                          className="flex items-center gap-2 text-[#F4EFEA] hover:text-[#E5A93C] transition-colors"
+                        >
+                          <span className="font-serif text-base">
+                            {group.lessonTitle}
+                          </span>
+                          <FiExternalLink size={12} className="opacity-50" />
+                        </Link>
+                      </td>
+                      <td className="py-6 px-6">
+                        <span className="bg-red-500/10 text-red-400 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-red-500/20">
+                          {group.reportCount} Flags
+                        </span>
+                      </td>
+                      <td className="py-6 px-8 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setSelectedReport(group)}
+                            className="p-2.5 bg-white/5 border border-white/10 text-gray-400 hover:text-[#E5A93C] rounded-xl transition-all"
+                          >
+                            <FiEye size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleIgnore(group._id)}
+                            className="p-2.5 bg-green-500/10 border border-green-500/10 text-green-400 hover:text-white hover:bg-green-600 rounded-xl transition-all"
+                          >
+                            <FiCheckCircle size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteLesson(group._id)}
+                            className="p-2.5 bg-red-500/10 border border-red-500/10 text-red-500 hover:text-white hover:bg-red-600 rounded-xl transition-all"
+                          >
+                            <FiTrash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="grid grid-cols-1 gap-4 lg:hidden">
+              {filteredReports.map(group => (
+                <div
                   key={group._id}
-                  className="border-t border-[#1A1612] hover:bg-white/[0.02] transition-colors"
+                  className="bg-[#14110C] border border-[#231E15] rounded-3xl p-6 space-y-4"
                 >
-                  <td className="p-5 font-serif text-white text-lg">
+                  <h4 className="font-serif text-lg text-[#F4EFEA]">
                     {group.lessonTitle}
-                  </td>
-                  <td className="p-5">
-                    <span className="bg-red-500/10 text-red-500 px-4 py-1 rounded-full text-[10px] font-bold border border-red-500/20 uppercase tracking-widest">
-                      {group.reportCount} Reports Received
-                    </span>
-                  </td>
-                  <td className="p-5 text-right space-x-3">
-                    {/* View Reports Button with Eye Icon and Text */}
+                  </h4>
+                  <span className="inline-block bg-red-500/10 text-red-400 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-red-500/20">
+                    {group.reportCount} Flags
+                  </span>
+                  <div className="flex gap-2 pt-4 border-t border-white/5">
                     <button
                       onClick={() => setSelectedReport(group)}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white rounded-lg transition-all text-[10px] font-mono uppercase tracking-widest border border-blue-500/20"
+                      className="flex-1 py-3 bg-white/5 text-center text-[10px] font-black uppercase tracking-widest rounded-xl"
                     >
-                      <FiEye /> View Reports
+                      Details
                     </button>
-
                     <button
                       onClick={() => handleIgnore(group._id)}
-                      className="p-2.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-lg transition-all border border-emerald-500/20"
-                      title="Ignore Reports"
+                      className="p-3 bg-green-500/10 text-green-400 rounded-xl"
                     >
                       <FiCheckCircle />
                     </button>
-
                     <button
                       onClick={() => handleDeleteLesson(group._id)}
-                      className="p-2.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all border border-red-500/20"
-                      title="Delete Lesson"
+                      className="p-3 bg-red-500/10 text-red-500 rounded-xl"
                     >
                       <FiTrash2 />
                     </button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            </div>
+          </>
+        )}
+      </div>
 
-      {/* ADMIN MODAL: Displaying ALL reasons with reporter info */}
+      {/* Modal - Consistent with MyLessonsPage */}
       <AnimatePresence>
         {selectedReport && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-[#0F0E0C] border border-[#1A1612] p-8 max-w-2xl w-full rounded-2xl max-h-[85vh] overflow-y-auto relative shadow-2xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedReport(null)}
+              className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-lg bg-[#14110C] border border-[#231E15] rounded-3xl p-8 shadow-2xl"
             >
-              <button
-                onClick={() => setSelectedReport(null)}
-                className="absolute top-6 right-6 text-[#5C544A] hover:text-white transition-all"
-              >
-                <FiX size={24} />
-              </button>
-
-              <div className="mb-8">
-                <h3 className="text-2xl font-serif text-white mb-1">
-                  Investigation Report
-                </h3>
-                <p className="text-[10px] font-mono text-[#E5A93C] uppercase tracking-[0.3em]">
-                  {selectedReport.lessonTitle}
-                </p>
-              </div>
-
-              {/* Loop through all reasons given for this lesson */}
-              <div className="space-y-6">
+              <h3 className="text-xl font-serif text-[#F4EFEA] mb-6">
+                Investigation Details
+              </h3>
+              <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
                 {selectedReport.allReports.map((report, idx) => (
                   <div
                     key={idx}
-                    className="p-5 bg-[#1A1612]/40 rounded-xl border border-white/5 group hover:border-red-500/30 transition-all"
+                    className="p-4 bg-white/[0.02] rounded-xl border border-white/5"
                   >
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
-                          <FiAlertTriangle className="text-red-500 text-xs" />
-                        </div>
-                        <span className="text-xs font-mono text-red-500 uppercase font-bold tracking-widest">
-                          Reason: {report.reason}
-                        </span>
-                      </div>
-                      <span className="text-[9px] font-mono text-[#5C544A] flex items-center gap-1">
-                        <FiClock />{' '}
-                        {new Date(report.timestamp).toLocaleString()}
-                      </span>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-[11px] text-[#BAB0A3] font-mono">
-                        <FiMail className="text-blue-500" />
-                        <span className="text-[#8C8275]">Reporter:</span>{' '}
-                        {report.reportedUserEmail}
-                      </div>
-
-                      {/* Requirement: Displaying Additional Text Field Info */}
-                      <div className="mt-3 p-4 bg-black/40 rounded-lg border border-white/5">
-                        <div className="flex gap-3">
-                          <FiMessageSquare className="text-[#5C544A] mt-1 flex-shrink-0" />
-                          <p className="text-sm text-[#BAB0A3] font-serif italic leading-relaxed">
-                            "
-                            {report.additionalDetails ||
-                              'No additional context provided by reporter.'}
-                            "
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                    <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">
+                      {report.reason}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      "{report.additionalDetails}"
+                    </p>
                   </div>
                 ))}
               </div>
-
-              <div className="mt-10 pt-6 border-t border-white/5 flex gap-4">
-                <button
-                  onClick={() => setSelectedReport(null)}
-                  className="flex-1 py-4 bg-[#1A1612] text-white font-mono text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all rounded-lg"
-                >
-                  Close Inspection
-                </button>
-                <button
-                  onClick={() => {
-                    handleDeleteLesson(selectedReport._id);
-                    setSelectedReport(null);
-                  }}
-                  className="flex-1 py-4 bg-red-600 text-white font-mono text-[10px] uppercase font-bold tracking-widest hover:bg-red-700 transition-all rounded-lg shadow-lg"
-                >
-                  Purge Lesson
-                </button>
-              </div>
+              <button
+                onClick={() => setSelectedReport(null)}
+                className="w-full mt-8 py-4 bg-[#E5A93C] text-black font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-white transition-all"
+              >
+                Close
+              </button>
             </motion.div>
           </div>
         )}

@@ -46,11 +46,11 @@ const UserProfile = () => {
     }
   }, [user, serverUrl]);
 
-      useEffect(() => {
-        if (!isPending && !session) {
-          router.replace('/signin');
-        }
-      }, [session, isPending, router]);
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.replace('/signin');
+    }
+  }, [session, isPending, router]);
 
   // --- Helper: Get Initials from Name ---
   const getInitials = fullName => {

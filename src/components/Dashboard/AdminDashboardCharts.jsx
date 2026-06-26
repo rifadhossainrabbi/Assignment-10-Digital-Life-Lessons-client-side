@@ -13,64 +13,83 @@ import {
 
 const AdminDashboardCharts = ({ data }) => {
   return (
-    <div className="h-[350px] w-full mt-4">
+    <div className="h-[250px] sm:h-[300px] md:h-[350px] w-full mt-4">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data}>
+        <AreaChart
+          data={data}
+          margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+        >
           <defs>
-            {/* Gradient for Lessons */}
             <linearGradient id="colorLessons" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+              <stop offset="5%" stopColor="#d4af37" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#d4af37" stopOpacity={0} />
             </linearGradient>
-            {/* Gradient for Users */}
             <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+              <stop offset="5%" stopColor="#ffffff" stopOpacity={0.1} />
+              <stop offset="95%" stopColor="#ffffff" stopOpacity={0} />
             </linearGradient>
           </defs>
+
           <CartesianGrid
             strokeDasharray="3 3"
             vertical={false}
-            stroke="#1e293b"
+            stroke="rgba(255, 255, 255, 0.05)"
           />
+
           <XAxis
             dataKey="date"
             axisLine={false}
             tickLine={false}
-            tick={{ fill: '#94a3b8', fontSize: 12 }}
+            tick={{ fill: '#6b7280', fontSize: 10, fontWeight: 'bold' }}
             dy={10}
           />
+
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fill: '#94a3b8', fontSize: 12 }}
+            tick={{ fill: '#6b7280', fontSize: 10, fontWeight: 'bold' }}
           />
+
           <Tooltip
+            cursor={{ stroke: '#d4af37', strokeWidth: 1 }}
             contentStyle={{
-              backgroundColor: '#0f172a',
-              border: '1px solid #1e293b',
+              backgroundColor: '#111',
+              border: '1px solid rgba(212, 175, 55, 0.2)',
               borderRadius: '12px',
-              color: '#f8fafc',
+              fontSize: '11px',
+              color: '#fff',
             }}
           />
-          <Legend verticalAlign="top" height={36} />
-          {/* Lesson Growth Line */}
+
+          <Legend
+            verticalAlign="top"
+            align="right"
+            height={36}
+            iconType="circle"
+            formatter={value => (
+              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-500">
+                {value}
+              </span>
+            )}
+          />
+
           <Area
-            name="New Lessons"
+            name="Lessons"
             type="monotone"
             dataKey="lessonCount"
-            stroke="#6366f1"
+            stroke="#d4af37"
             strokeWidth={3}
             fillOpacity={1}
             fill="url(#colorLessons)"
           />
-          {/* User Growth Line */}
+
           <Area
-            name="New Users"
+            name="Users"
             type="monotone"
             dataKey="userCount"
-            stroke="#10b981"
-            strokeWidth={3}
+            stroke="#ffffff"
+            strokeWidth={2}
+            strokeDasharray="5 5"
             fillOpacity={1}
             fill="url(#colorUsers)"
           />

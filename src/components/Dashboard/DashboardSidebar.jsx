@@ -22,19 +22,31 @@ const DashboardSidebar = () => {
 
   const userNavItems = [
     { icon: LayoutDashboard, href: '/dashboard', label: 'Dashboard' },
-    { icon: PlusSquare, href: '/dashboard/user/add-lesson', label: 'Add Lesson' },
+    {
+      icon: PlusSquare,
+      href: '/dashboard/user/add-lesson',
+      label: 'Add Lesson',
+    },
     { icon: BookOpen, href: '/dashboard/user/my-lessons', label: 'My Lessons' },
     { icon: Sparkles, href: '/dashboard/user/favorite-lesson', label: 'Saved' },
     { icon: User, href: '/dashboard/profile', label: 'Profile' },
   ];
 
   const adminNavItems = [
-    { icon: LayoutDashboard, href: '/dashboard/admin', label: 'Admin' },
-    { icon: Users, href: '/dashboard/admin/manage-users', label: 'Users' },
+    {
+      icon: LayoutDashboard,
+      href: '/dashboard/admin',
+      label: 'Admin'
+    },
+    {
+      icon: Users,
+      href: '/dashboard/admin/manage-users',
+      label: 'Manage Users'
+    },
     {
       icon: BookOpen,
       href: '/dashboard/admin/manage-lessons',
-      label: 'Lessons',
+      label: 'Manage Lessons',
     },
     {
       icon: ShieldAlert,

@@ -21,12 +21,29 @@ const Navbar = () => {
   const dropdownRef = useRef(null);
   const pathname = usePathname();
 
+  // Get authentication session data
   const { data: session } = authClient.useSession();
   const isLoggedIn = !!session;
   const user = session?.user;
   const userRole = user?.role || 'user';
   const isPremium = user?.plan;
 
+  /**
+   * Helper function to get the first two initials of the name
+   * Example: "John Doe" -> "JD"
+   */
+  const getInitials = name => {
+    if (!name) return '??';
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  /**
+   * Close the desktop profile dropdown when clicking outside of it
+   */
   useEffect(() => {
     const handleClickOutside = event => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -37,6 +54,9 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  /**
+   * Lock body scroll when the mobile drawer is open
+   */
   useEffect(() => {
     if (isMobileDrawerOpen) {
       document.body.style.overflow = 'hidden';
@@ -45,30 +65,36 @@ const Navbar = () => {
     }
   }, [isMobileDrawerOpen]);
 
+  /**
+   * Perform logout and close UI components
+   */
   const handleLogout = async () => {
     await authClient.signOut();
     setIsDropdownOpen(false);
     setIsMobileDrawerOpen(false);
   };
 
+  // Define basic navigation links
   const navLinks = [
     { name: 'Home', href: '/' },
     { name: 'Public Lessons', href: '/public-lessons' },
   ];
 
+  // Add role-based navigation links
   if (userRole === 'admin') {
     navLinks.push(
       { name: 'Manage Lessons', href: '/dashboard/admin/manage-lessons' },
       { name: 'Manage Users', href: '/dashboard/admin/manage-users' },
     );
-  } else  {
+  } else {
     navLinks.push(
       { name: 'Add Lesson', href: '/dashboard/user/add-lesson' },
       { name: 'My Lessons', href: '/dashboard/user/my-lessons' },
     );
   }
 
-  if (isLoggedIn && isPremium == 'free') {
+  // Show Upgrade link only if the user is logged in and on a Free plan
+  if (isLoggedIn && isPremium === 'free') {
     navLinks.push({ name: 'Upgrade✨', href: '/pricing' });
   }
 
@@ -76,6 +102,7 @@ const Navbar = () => {
     <>
       <nav className="bg-[#0a0a0a]/90 backdrop-blur-md sticky top-0 z-[50] border-b border-white/5 py-3 md:py-4">
         <div className="max-w-[1440px] mx-auto px-5 md:px-10 flex justify-between items-center">
+          {/* Brand Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="block">
               <Image
@@ -89,6 +116,7 @@ const Navbar = () => {
             </Link>
           </div>
 
+          {/* Desktop Navigation Links */}
           <ul className="hidden lg:flex items-center space-x-8">
             {navLinks.map((link, index) => (
               <li key={index}>
@@ -106,6 +134,7 @@ const Navbar = () => {
             ))}
           </ul>
 
+          {/* Action Area (Auth and Profile) */}
           <div className="flex items-center space-x-6">
             {!isLoggedIn ? (
               <Link
@@ -115,21 +144,31 @@ const Navbar = () => {
                 Login
               </Link>
             ) : (
+              /* Desktop Profile Dropdown */
               <div className="relative hidden md:block" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center space-x-2 group focus:outline-none"
                 >
+                  {/* Avatar Container: Show image if exists, else show initials */}
                   <div
-                    className={`w-10 h-10 rounded-full border-2 p-[2px] transition-all duration-300 ${isDropdownOpen ? 'border-[#d4af37]' : 'border-white/10'}`}
+                    className={`w-10 h-10 rounded-full border-2 p-[2px] transition-all duration-300 ${
+                      isDropdownOpen ? 'border-[#d4af37]' : 'border-white/10'
+                    } flex items-center justify-center overflow-hidden`}
                   >
-                    <Image
-                      src={user?.image || 'https://i.ibb.co/L5M0Y8Y/avatar.png'}
-                      alt="User"
-                      width={40}
-                      height={40}
-                      className="rounded-full object-cover"
-                    />
+                    {user?.image ? (
+                      <Image
+                        src={user.image}
+                        alt="User Avatar"
+                        width={40}
+                        height={40}
+                        className="rounded-full object-cover w-full h-full"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#d4af37] text-black rounded-full flex items-center justify-center text-[10px] font-black uppercase tracking-tighter">
+                        {getInitials(user?.name)}
+                      </div>
+                    )}
                   </div>
                   <ChevronDown
                     className={`text-[#d4af37] transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
@@ -137,6 +176,7 @@ const Navbar = () => {
                   />
                 </button>
 
+                {/* Profile Dropdown Menu */}
                 <AnimatePresence>
                   {isDropdownOpen && (
                     <motion.div
@@ -154,7 +194,7 @@ const Navbar = () => {
                           <p className="text-[#d4af37] text-[10px] uppercase font-bold tracking-widest">
                             {userRole} Member
                           </p>
-                          {isPremium && (
+                          {user?.plan === 'premium' && (
                             <ShieldCheck
                               className="ml-1 text-blue-400"
                               width={12}
@@ -195,6 +235,7 @@ const Navbar = () => {
               </div>
             )}
 
+            {/* Mobile Sidebar Toggle Button */}
             <button
               onClick={() => setIsMobileDrawerOpen(true)}
               className="lg:hidden text-[#d4af37] p-2 active:scale-90 transition-transform"
@@ -205,17 +246,17 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* --- MOBILE DRAWER (Tailwind Animation) --- */}
+      {/* --- MOBILE DRAWER (CSS Animation) --- */}
       <div
         className={`fixed inset-0 z-[9999] transition-visibility duration-300 ${isMobileDrawerOpen ? 'visible' : 'invisible'}`}
       >
-        {/* Backdrop Overlay */}
+        {/* Transparent Backdrop */}
         <div
           onClick={() => setIsMobileDrawerOpen(false)}
           className={`absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${isMobileDrawerOpen ? 'opacity-100' : 'opacity-0'}`}
         />
 
-        {/* Drawer Panel */}
+        {/* Drawer Panel Container */}
         <div
           className={`absolute right-0 top-0 h-full w-[85%] max-w-[350px] bg-[#0a0a0a] shadow-2xl flex flex-col border-l border-white/10 transform transition-transform duration-300 ease-in-out ${isMobileDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}
         >
@@ -232,15 +273,24 @@ const Navbar = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto p-8">
+            {/* User Info Header for Mobile Sidebar */}
             {isLoggedIn && (
               <div className="flex items-center space-x-4 mb-10 pb-6 border-b border-white/5">
-                <Image
-                  src={user?.image || 'https://i.ibb.co/L5M0Y8Y/avatar.png'}
-                  alt="user"
-                  width={50}
-                  height={50}
-                  className="rounded-full border border-[#d4af37]"
-                />
+                <div className="w-[50px] h-[50px] rounded-full border border-[#d4af37] flex items-center justify-center overflow-hidden">
+                  {user?.image ? (
+                    <Image
+                      src={user.image}
+                      alt="User Avatar Mobile"
+                      width={50}
+                      height={50}
+                      className="rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#d4af37] text-black flex items-center justify-center font-black text-xs">
+                      {getInitials(user?.name)}
+                    </div>
+                  )}
+                </div>
                 <div>
                   <p className="text-white font-bold">{user?.name}</p>
                   <p className="text-[#d4af37] text-[10px] uppercase">
@@ -250,6 +300,7 @@ const Navbar = () => {
               </div>
             )}
 
+            {/* Mobile Navigation Links */}
             <div className="flex flex-col space-y-2">
               {navLinks.map((link, index) => (
                 <Link
@@ -283,6 +334,7 @@ const Navbar = () => {
             </div>
           </div>
 
+          {/* Drawer Bottom Action */}
           <div className="p-8 border-t border-white/5">
             {!isLoggedIn ? (
               <Link
