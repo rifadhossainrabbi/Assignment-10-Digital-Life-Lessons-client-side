@@ -52,7 +52,7 @@ export default function UserDashboardHome() {
           (acc, curr) => acc + (curr.likesCount || 0),
           0,
         );
-
+ 
         setStats({
           totalCreated: lessonsRes.length,
           totalSaved: favoritesRes.length,

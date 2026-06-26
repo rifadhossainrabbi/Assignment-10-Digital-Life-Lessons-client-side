@@ -1,16 +1,13 @@
-import { authClient } from "./auth-client";
+import { authClient } from './auth-client';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
 const request = async (method, endpoint, body) => {
   const headers = { 'Content-Type': 'application/json' };
 
-  // request get na hole token add koro
-  if (method !== 'GET') {
-    const session = await authClient.getSession();
-    const token = session?.data?.session?.token; // Better Auth থেকে টোকেন নেওয়া
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  }
+  const session = await authClient.getSession();
+  const token = session?.data?.session?.token;
+  if (token) headers['Authorization'] = `Bearer ${token}`;
 
   // fetch request
   const res = await fetch(`${BASE_URL}${endpoint}`, {
@@ -22,7 +19,19 @@ const request = async (method, endpoint, body) => {
   const data = await res.json();
 
   // error handling
-  if (!res.ok) throw new Error(data.message || 'API Error');
+  if (res.status === 401) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/unauthorized';
+    }
+    return;
+  }
+
+  if (res.status === 403) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/forbidden';
+    }
+    return;
+  }
 
   return data;
 };
