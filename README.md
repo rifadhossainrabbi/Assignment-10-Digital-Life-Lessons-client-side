@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 📖 Digital Life Lessons
 
-## Getting Started
+A platform where users create, store, and share meaningful life lessons, personal growth insights, and wisdom gathered over time.
 
-First, run the development server:
+## 🌐 Live URL
+🔗 [https://digital-life-lessons.vercel.app](https://digital-life-lessons.vercel.app)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🎯 Purpose
+People often learn valuable lessons but forget them over time. This platform helps preserve personal wisdom, encourages mindful reflection, and allows users to grow by exploring lessons from the community.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ✨ Key Features
+- 🔐 Email/Password & Google OAuth login via Better Auth
+- 💎 Free & Premium plan with Stripe one-time payment (৳1500 lifetime)
+- 📝 Create lessons with category, emotional tone, image & access level
+- 🔒 Premium lessons blurred/locked for Free users with upgrade prompt
+- 🌍 Browse, search, filter & sort public lessons
+- ❤️ Like, save to favorites, comment & report lessons
+- 📊 User dashboard with stats, analytics chart & lesson management
+- 🛡️ Admin panel — manage users, lessons, featured content & reports
+- 🏠 Dynamic home page with slider, featured lessons, top contributors & most saved
+- 📱 Fully responsive with dark luxury design & Framer Motion animations
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## 📦 NPM Packages Used
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Package | Purpose |
+|---|---|
+| `next` | React framework |
+| `better-auth` | Authentication |
+| `mongodb` | Database driver |
+| `stripe` | Payment processing |
+| `@heroui/react` | UI components |
+| `@gravity-ui/icons` | Icons |
+| `framer-motion` | Animations |
+| `react-icons` | Icon packs |
+| `lucide-react` | Icons |
+| `recharts` | Charts |
+| `swiper` | Banner slider |
+| `react-hook-form` | Form handling |
+| `react-hot-toast` | Notifications |
+| `axios` | HTTP requests |
+| `tailwindcss` | CSS framework |

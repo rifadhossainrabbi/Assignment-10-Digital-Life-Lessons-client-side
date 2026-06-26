@@ -7,7 +7,6 @@ import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
 import toast, { Toaster } from 'react-hot-toast';
 import { Button } from '@heroui/react';
-import { useRouter } from 'next/router';
 
 const LogInPage = () => {
   // const router = useRouter();
