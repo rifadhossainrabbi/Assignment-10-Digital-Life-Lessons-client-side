@@ -79,8 +79,8 @@ const Navbar = () => {
     <>
       {/* 
         INVISIBLE FULL-SCREEN OVERLAY 
-        z-index is set to 60 to be above the navbar (50).
-        This ensures clicking the navbar area also closes the dropdown.
+        Set z-index to 40 so it stays below the Navbar (50).
+        This allows clicks to pass to the Navbar but blocks everything below it.
       */}
       <AnimatePresence>
         {isDropdownOpen && (
@@ -89,13 +89,23 @@ const Navbar = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsDropdownOpen(false)}
-            className="fixed inset-0 z-[60] bg-transparent cursor-default"
+            className="fixed inset-0 z-[40] bg-transparent cursor-default"
           />
         )}
       </AnimatePresence>
 
-      <nav className="bg-[#0a0a0a]/90 backdrop-blur-md sticky top-0 z-[50] border-b border-white/5 py-3 md:py-4">
-        <div className="max-w-[1440px] mx-auto px-5 md:px-10 flex justify-between items-center">
+      {/* 
+        NAVBAR: Added onClick to close dropdown when clicking empty space 
+        z-index is 50, which is higher than the overlay.
+      */}
+      <nav
+        onClick={() => isDropdownOpen && setIsDropdownOpen(false)}
+        className="bg-[#0a0a0a]/90 backdrop-blur-md sticky top-0 z-[50] border-b border-white/5 py-3 md:py-4 cursor-pointer"
+      >
+        <div
+          className="max-w-[1440px] mx-auto px-5 md:px-10 flex justify-between items-center cursor-default"
+          onClick={e => e.stopPropagation()} // Prevents clicking the navbar content from closing dropdown immediately
+        >
           {/* Brand Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="block">
@@ -138,16 +148,17 @@ const Navbar = () => {
                 Login
               </Link>
             ) : (
-              /* Profile Dropdown Container: z-index 61 to stay above the overlay */
-              <div className="relative hidden md:block z-[61]">
+              /* Desktop Profile Dropdown */
+              <div className="relative hidden md:block">
                 <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  onClick={e => {
+                    e.stopPropagation(); // Prevents Navbar onClick from firing
+                    setIsDropdownOpen(!isDropdownOpen);
+                  }}
                   className="flex items-center space-x-2 group focus:outline-none"
                 >
                   <div
-                    className={`w-10 h-10 rounded-full border-2 p-[2px] transition-all duration-300 ${
-                      isDropdownOpen ? 'border-[#d4af37]' : 'border-white/10'
-                    } flex items-center justify-center overflow-hidden`}
+                    className={`w-10 h-10 rounded-full border-2 p-[2px] transition-all duration-300 ${isDropdownOpen ? 'border-[#d4af37]' : 'border-white/10'} flex items-center justify-center overflow-hidden`}
                   >
                     {user?.image ? (
                       <Image
@@ -158,7 +169,7 @@ const Navbar = () => {
                         className="rounded-full object-cover w-full h-full"
                       />
                     ) : (
-                      <div className="w-full h-full bg-[#d4af37] text-black rounded-full flex items-center justify-center text-[10px] font-black uppercase tracking-tighter">
+                      <div className="w-full h-full bg-[#d4af37] text-black rounded-full flex items-center justify-center text-[10px] font-black uppercase">
                         {getInitials(user?.name)}
                       </div>
                     )}
@@ -176,8 +187,8 @@ const Navbar = () => {
                       initial={{ opacity: 0, y: 5, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 5, scale: 0.98 }}
-                      transition={{ duration: 0.15, ease: 'easeOut' }}
-                      className="absolute right-0 mt-4 w-72 bg-[#0f0f0f] border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.7)] overflow-hidden"
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-4 w-72 bg-[#0f0f0f] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
                     >
                       <div className="p-5 border-b border-white/5 bg-white/[0.02]">
                         <p className="text-white font-bold truncate">
@@ -228,10 +239,10 @@ const Navbar = () => {
               </div>
             )}
 
-            {/* Mobile Sidebar Toggle Button */}
+            {/* Mobile Toggle */}
             <button
               onClick={() => setIsMobileDrawerOpen(true)}
-              className="lg:hidden text-[#d4af37] p-2 active:scale-90 transition-transform"
+              className="lg:hidden text-[#d4af37] p-2"
             >
               <Bars width={28} />
             </button>
@@ -239,7 +250,7 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* --- MOBILE DRAWER --- */}
+      {/* --- MOBILE DRAWER CODE REMAINS THE SAME --- */}
       <div
         className={`fixed inset-0 z-[9999] transition-visibility duration-300 ${isMobileDrawerOpen ? 'visible' : 'invisible'}`}
       >
@@ -247,7 +258,6 @@ const Navbar = () => {
           onClick={() => setIsMobileDrawerOpen(false)}
           className={`absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${isMobileDrawerOpen ? 'opacity-100' : 'opacity-0'}`}
         />
-
         <div
           className={`absolute right-0 top-0 h-full w-[85%] max-w-[350px] bg-[#0a0a0a] shadow-2xl flex flex-col border-l border-white/10 transform transition-transform duration-300 ease-in-out ${isMobileDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}
         >
@@ -262,7 +272,6 @@ const Navbar = () => {
               <Xmark width={30} />
             </button>
           </div>
-
           <div className="flex-1 overflow-y-auto p-8">
             {isLoggedIn && (
               <div className="flex items-center space-x-4 mb-10 pb-6 border-b border-white/5">
@@ -270,7 +279,7 @@ const Navbar = () => {
                   {user?.image ? (
                     <Image
                       src={user.image}
-                      alt="User Avatar Mobile"
+                      alt="Avatar"
                       width={50}
                       height={50}
                       className="rounded-full object-cover"
@@ -289,7 +298,6 @@ const Navbar = () => {
                 </div>
               </div>
             )}
-
             <div className="flex flex-col space-y-2">
               {navLinks.map((link, index) => (
                 <Link
@@ -301,7 +309,6 @@ const Navbar = () => {
                   {link.name}
                 </Link>
               ))}
-
               {isLoggedIn && (
                 <>
                   <Link
@@ -322,7 +329,6 @@ const Navbar = () => {
               )}
             </div>
           </div>
-
           <div className="p-8 border-t border-white/5">
             {!isLoggedIn ? (
               <Link

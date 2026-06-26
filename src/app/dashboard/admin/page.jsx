@@ -16,6 +16,7 @@ import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import AdminDashboardCharts from '@/components/Dashboard/AdminDashboardCharts';
+import { api } from '@/lib/reusableApi';
 
 const AdminDashboardHome = () => {
   const [dashboardData, setDashboardData] = useState({
@@ -52,15 +53,9 @@ const AdminDashboardHome = () => {
     const fetchAllData = async () => {
       try {
         const [userRes, lessonRes, reportRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/admin/users`).then(res =>
-            res.json(),
-          ),
-          fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/admin/all-lessons`).then(
-            res => res.json(),
-          ),
-          fetch(
-            `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/reported-lessons`,
-          ).then(res => res.json()),
+          api.get('/admin/users'),
+          api.get('/admin/all-lessons'),
+          api.get('/admin/reported-lessons'),
         ]);
 
         const lessons = lessonRes.lessons || [];
@@ -123,9 +118,10 @@ const AdminDashboardHome = () => {
           loading: false,
         });
       } catch (err) {
-        console.error(err);
+        console.error('Dashboard Data Sync Error:', err.message);
       }
     };
+
     if (session?.user.role === 'admin') fetchAllData();
   }, [session]);
 

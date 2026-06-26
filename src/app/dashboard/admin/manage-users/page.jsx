@@ -1,5 +1,6 @@
 'use client';
 import { authClient } from '@/lib/auth-client';
+import { api } from '@/lib/reusableApi';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
@@ -60,16 +61,14 @@ const ManageUsersByAdminPage = () => {
     }
   }, [session, isPending, router]);
 
+  // 2. Fetch users using api.get
   const getUsers = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/users`,
-      );
-      const data = await response.json();
+      const data = await api.get('/admin/users');
       setUsers(data);
       setLoading(false);
     } catch (error) {
-      console.error('Failed to fetch users:', error);
+      console.error('Failed to fetch users:', error.message);
       setLoading(false);
     }
   };
@@ -78,43 +77,35 @@ const ManageUsersByAdminPage = () => {
     user.name?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  // 3. Promote user using api.patch (Token attached automatically)
   const handlePromote = async () => {
     const user = modal.user;
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/users/role/${user._id}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
-      const resData = await response.json();
+      // Body can be empty as the backend route handles the role update
+      const resData = await api.patch(`/admin/users/role/${user._id}`, {});
+
       if (resData.modifiedCount > 0) {
-        getUsers();
+        getUsers(); // Refresh the personnel list
         toast.success(`${user.name} is now an Admin!`);
       }
     } catch (err) {
-      toast.error('Failed to promote user.');
+      toast.error(err.message || 'Failed to promote user.');
     }
     setModal({ isOpen: false, type: '', user: null });
   };
 
+  // 4. Delete user using api.delete (Token attached automatically)
   const handleDelete = async () => {
     const user = modal.user;
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/users/${user._id}`,
-        {
-          method: 'DELETE',
-        },
-      );
-      const resData = await response.json();
+      const resData = await api.delete(`/admin/users/${user._id}`);
+
       if (resData.deletedCount > 0) {
-        getUsers();
+        getUsers(); // Refresh the personnel list
         toast.success('User removed from system.');
       }
     } catch (err) {
-      toast.error('Deletion failed.');
+      toast.error(err.message || 'Deletion failed.');
     }
     setModal({ isOpen: false, type: '', user: null });
   };
@@ -319,6 +310,6 @@ const ManageUsersByAdminPage = () => {
       </div>
     </div>
   );
-};
+};;;;
 
 export default ManageUsersByAdminPage;

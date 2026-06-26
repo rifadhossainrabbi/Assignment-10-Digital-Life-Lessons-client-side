@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { FiArrowLeft, FiLock, FiEye, FiTag, FiBookOpen } from 'react-icons/fi';
 import { authClient } from '@/lib/auth-client';
 import { toast } from 'react-hot-toast';
+import { api } from '@/lib/reusableApi';
 
 export default function AuthorProfilePage() {
   const params = useParams();
@@ -23,10 +24,7 @@ export default function AuthorProfilePage() {
     const fetchAuthorData = async () => {
       try {
         setLoading(true);
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SERVER_URL}/lessons/user/${params.id}`,
-        );
-        const data = await res.json();
+        const data = await api.get(`/lessons/user/${params.id}`);
         setLessons(data);
       } catch (error) {
         toast.error('Failed to establish connection to the archives');

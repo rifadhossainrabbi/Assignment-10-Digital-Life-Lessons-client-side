@@ -15,6 +15,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/auth-client';
 import toast, { Toaster } from 'react-hot-toast';
+import { api } from '@/lib/reusableApi';
 
 export default function PublicLessonsPage() {
   const { data: session } = authClient.useSession();
@@ -33,31 +34,28 @@ export default function PublicLessonsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
 
-  // --- Fetch Data from Backend ---
+  // --- Fetch Data using Reusable API ---
   const fetchLessons = async () => {
     try {
       setLoading(true);
-      // Backend API URL with Query Params
+
+      // query params
       const query = new URLSearchParams({
         search: search,
         category: category === 'All' ? '' : category,
         emotionalTone: tone === 'All' ? '' : tone,
         page: currentPage,
-        limit: 8, // Per page limit
+        limit: 8,
       }).toString();
+ 
+      // reusable api use
+      const data = await api.get(`/lessons?${query}`);
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/lessons?${query}`,
-      );
-      const data = await res.json();
-
-      if (res.ok) {
-        setLessons(data.lessons || []);
-        setTotalPages(data.totalPages || 1);
-        setTotalResults(data.totalLessons || 0);
-      }
+      setLessons(data.lessons || []);
+      setTotalPages(data.totalPages || 1);
+      setTotalResults(data.totalLessons || 0);
     } catch (error) {
-      toast.error('Failed to connect to the wisdom archives');
+      toast.error(error.message || 'Failed to connect to archives');
     } finally {
       setLoading(false);
     }
@@ -95,7 +93,7 @@ export default function PublicLessonsPage() {
       {/* --- SEARCH & FILTER BAR --- */}
       <div className="max-w-7xl mx-auto bg-[#0F0E0C] border border-[#1A1612] p-6 mb-16 flex flex-col lg:flex-row gap-4 items-center justify-between shadow-2xl rounded-2xl">
         {/* Search Form */}
-        <form onSubmit={handleSearch} className="relative w-full lg:max-w-md">
+        <form onChange={handleSearch} className="relative w-full lg:max-w-md">
           <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5C544A]" />
           <input
             type="text"

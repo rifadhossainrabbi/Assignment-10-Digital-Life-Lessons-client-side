@@ -17,6 +17,7 @@ import {
   FaExternalLinkAlt,
   FaExclamationTriangle,
 } from 'react-icons/fa';
+import { api } from '@/lib/reusableApi';
 
 // Confirmation Modal Component for deleting lessons
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
@@ -77,55 +78,38 @@ const ManageLessonsPageByAdmin = () => {
   // Fetch data function
   const fetchLessons = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/all-lessons`,
-      );
-      const data = await response.json();
+      const data = await api.get('/admin/all-lessons');
       setLessons(data.lessons);
       setStats(data.stats);
       setLoading(false);
     } catch (error) {
-      console.error('System Archive Error:', error);
-      toast.error('Failed to connect to the master archive');
+      toast.error(error.message || 'System sync failed');
       setLoading(false);
     }
   };
 
-  // Update "isFeatured" or "isReviewed" status
+  // ৩. PATCH Request (Token added automatically by apiInstance)
   const handleUpdateStatus = async (id, field, currentValue) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/lessons/status/${id}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ [field]: !currentValue }),
-        },
-      );
-
-      if (response.ok) {
-        fetchLessons(); // Refresh the list
-        toast.success(`${field.replace('is', '')} status updated`);
-      }
+      await api.patch(`/admin/lessons/status/${id}`, {
+        [field]: !currentValue,
+      });
+      fetchLessons();
+      toast.success(`${field.replace('is', '')} status updated`);
     } catch (err) {
-      toast.error('Registry update failed');
+      toast.error(err.message || 'Registry update failed');
     }
   };
 
-  // Delete inappropriate lessons with modal confirmation
+  // ৪. DELETE Request (Token added automatically by apiInstance)
   const handleDeleteLesson = async () => {
     const { lesson } = modal;
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/lessons/${lesson._id}`,
-        { method: 'DELETE' },
-      );
-      if (response.ok) {
-        fetchLessons();
-        toast.success('Record purged from database');
-      }
+      await api.delete(`/admin/lessons/${lesson._id}`);
+      fetchLessons();
+      toast.success('Record purged successfully');
     } catch (err) {
-      toast.error('Purge sequence failed');
+      toast.error(err.message || 'Purge failed');
     }
     setModal({ isOpen: false, lesson: null });
   };
@@ -405,6 +389,6 @@ const ManageLessonsPageByAdmin = () => {
       </div>
     </div>
   );
-};
+};;;
 
 export default ManageLessonsPageByAdmin;

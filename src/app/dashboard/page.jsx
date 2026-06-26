@@ -13,6 +13,7 @@ import {
 } from 'react-icons/fi';
 import { authClient } from '@/lib/auth-client';
 import DashboardChart from '@/components/Dashboard/DashboardChart';
+import { api } from '@/lib/reusableApi';
 
 export default function UserDashboardHome() {
   const router = useRouter();
@@ -36,16 +37,14 @@ export default function UserDashboardHome() {
     // Safety check for session
     if (isPending || !session?.user) return;
 
-    const serverUrl =
-      process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000';
     const userId = session.user.id;
 
     const fetchDashboardData = async () => {
       try {
         // Fetching data from your existing backend routes
         const [lessonsRes, favoritesRes] = await Promise.all([
-          fetch(`${serverUrl}/lessons/user/${userId}`).then(res => res.json()),
-          fetch(`${serverUrl}/favorites/${userId}`).then(res => res.json()),
+          api.get(`/lessons/user/${userId}`),
+          api.get(`/favorites/${userId}`),
         ]);
 
         // Calculate total likes accumulated from all lessons
