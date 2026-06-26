@@ -7,6 +7,7 @@ import { FiSave, FiArrowLeft, FiImage, FiUpload } from 'react-icons/fi';
 import toast, { Toaster } from 'react-hot-toast';
 import { authClient } from '@/lib/auth-client';
 import Link from 'next/link';
+import { api } from '@/lib/reusableApi';
 
 export default function UpdateLessonPage() {
   const { id } = useParams();
@@ -15,8 +16,6 @@ export default function UpdateLessonPage() {
   const user = session?.user;
 
   const imgBBKey = process.env.NEXT_PUBLIC_IMGBB_API_KEY;
-  const serverUrl =
-    process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000';
 
   const isPremiumUser = user?.plan === 'premium';
 
@@ -44,30 +43,27 @@ export default function UpdateLessonPage() {
   useEffect(() => {
     const fetchLessonData = async () => {
       try {
-        const res = await fetch(`${serverUrl}/lessons/${id}`);
-        const data = await res.json();
+        const data = await api.get(`/lessons/${id}`);
 
-        if (res.ok) {
-          setFormData({
-            title: data.title || '',
-            description: data.description || '',
-            category: data.category || '',
-            emotionalTone: data.emotionalTone || '',
-            image: data.image || '',
-            visibility: data.visibility || 'Public',
-            accessLevel: data.accessLevel || 'Free',
-          });
-          setPreviewUrl(data.image);
-        }
+        setFormData({
+          title: data.title || '',
+          description: data.description || '',
+          category: data.category || '',
+          emotionalTone: data.emotionalTone || '',
+          image: data.image || '',
+          visibility: data.visibility || 'Public',
+          accessLevel: data.accessLevel || 'Free',
+        });
+        setPreviewUrl(data.image);
       } catch (error) {
-        toast.error('Failed to retrieve archive data');
+        toast.error(error.message || 'Failed to retrieve archive data');
       } finally {
         setLoading(false);
       }
     };
 
     if (id) fetchLessonData();
-  }, [id, serverUrl]);
+  }, [id]);
 
   const handleFileChange = e => {
     const file = e.target.files[0];
@@ -117,22 +113,14 @@ export default function UpdateLessonPage() {
         updatedAt: new Date(),
       };
 
-      const res = await fetch(`${serverUrl}/lessons/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedLesson),
-      });
+      await api.patch(`/lessons/${id}`, updatedLesson);
 
-      if (res.ok) {
-        toast.success('Wisdom updated!', {
-          style: { background: '#1A1612', color: '#E5A93C' },
-        });
-        setTimeout(() => router.push('/dashboard/user/my-lessons'), 1500);
-      } else {
-        toast.error('Sync failed');
-      }
+      toast.success('Wisdom updated!', {
+        style: { background: '#1A1612', color: '#E5A93C' },
+      });
+      setTimeout(() => router.push('/dashboard/user/my-lessons'), 1500);
     } catch (error) {
-      toast.error(error.message || 'Server error');
+      toast.error(error.message || 'Sync failed');
     } finally {
       setUpdating(false);
     }

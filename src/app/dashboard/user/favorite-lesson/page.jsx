@@ -1,58 +1,58 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { FiTrash2, FiEye, FiBookmark, FiFilter, FiInfo } from 'react-icons/fi';
-import { toast } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
 import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/reusableApi';
+import { motion } from 'framer-motion';
+import DeleteConfirmModal from '../../DeleteConfirmModal';
+
 
 export default function UserFavoritePage() {
   const { data: session, isPending: authLoading } = authClient.useSession();
   const router = useRouter();
 
-  // Component states
+  // Component States
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedTone, setSelectedTone] = useState('');
+
+  // Modal tracking state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    lesson: null,
+  });
 
   /**
-   * Effect to fetch data whenever filters or session changes
+   * Fetch saved wisdom from the archives using reusable API
+   * Re-runs when category filter or session changes
    */
   useEffect(() => {
-    // Define the fetch function inside useEffect
     const fetchFavoritesData = async () => {
       if (!session?.user?.id) return;
 
       try {
         setLoading(true);
-        const params = new URLSearchParams();
-        if (selectedCategory) params.append('category', selectedCategory);
-        if (selectedTone) params.append('emotionalTone', selectedTone);
+        const query = new URLSearchParams({
+          category: selectedCategory,
+        }).toString();
 
-        const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || '';
-        const baseUrl = `${serverUrl}/favorites/${session.user.id}`;
-        const queryStr = params.toString();
-        const url = queryStr ? `${baseUrl}?${queryStr}` : baseUrl;
-
-        const res = await fetch(url);
-        const data = await res.json();
+        // Fetching data via reusable instance
+        const data = await api.get(`/favorites/${session.user.id}?${query}`);
         setFavorites(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error('Fetch error:', error);
-        toast.error('Failed to sync archives');
+        toast.error(error.message || 'Failed to sync archives');
       } finally {
         setLoading(false);
       }
     };
 
-    // Run the fetch function only if session exists
-    if (session) {
-      fetchFavoritesData();
-    }
-  }, [session, selectedCategory, selectedTone]); // Re-run when these values change
+    if (session) fetchFavoritesData();
+  }, [session, selectedCategory]);
 
   /**
-   * Redirect to signin if not authenticated
+   * Auth Guard: Redirect unauthenticated users
    */
   useEffect(() => {
     if (!authLoading && !session) {
@@ -61,40 +61,42 @@ export default function UserFavoritePage() {
   }, [session, authLoading, router]);
 
   /**
-   * Delete handler
+   * Opens the confirmation modal for a specific lesson
    */
-  const handleRemoveFavorite = async lessonId => {
-    if (!window.confirm('Remove from your collection?')) return;
+  const handleOpenModal = lesson => {
+    setConfirmModal({ isOpen: true, lesson });
+  };
+
+  /**
+   * Logic to trigger the actual removal from backend
+   * Re-uses the toggle favorite endpoint
+   */
+  const executeRemove = async () => {
+    const lessonId = confirmModal.lesson?._id;
+    setConfirmModal({ isOpen: false, lesson: null }); // Close modal immediately
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/lessons/${lessonId}/favorite`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: session?.user?.id }),
-        },
-      );
+      // POST request automatically attaches Better Auth token via apiInstance
+      await api.post(`/lessons/${lessonId}/favorite`, {
+        userId: session?.user?.id,
+      });
 
-      if (res.ok) {
-        setFavorites(prev => prev.filter(fav => fav._id !== lessonId));
-        toast.success('Removed from archive');
-      } else {
-        toast.error('Action failed');
-      }
+      // Optimistic UI update: filter out the removed item
+      setFavorites(prev => prev.filter(fav => fav._id !== lessonId));
+      toast.success('Wisdom removed from archive');
     } catch (error) {
-      toast.error('Network error occurred');
+      toast.error('Action failed');
     }
   };
 
-  // Loading UI
+  // Global Loading State
   if (authLoading || (session && loading)) {
     return (
-      <div className="min-h-screen bg-[#0A0908] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#0A0908] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-[#E5A93C]/10 border-t-[#E5A93C] rounded-full animate-spin"></div>
-          <p className="text-[#E5A93C] font-mono text-[10px] tracking-[0.3em] uppercase text-center">
-            Syncing Archive...
+          <div className="w-10 h-10 border-2 border-[#E5A93C]/20 border-t-[#E5A93C] rounded-full animate-spin" />
+          <p className="text-[#E5A93C] font-mono text-[10px] tracking-widest uppercase text-center">
+            Accessing Archives...
           </p>
         </div>
       </div>
@@ -104,9 +106,19 @@ export default function UserFavoritePage() {
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-[#0A0908] text-[#D1C7BD] p-4 md:p-8 lg:p-8">
+    <div className="min-h-screen bg-[#0A0908] text-[#D1C7BD] p-4 md:p-8 lg:p-8 relative">
+      <Toaster position="bottom-right" />
+
+      {/* REUSABLE SEPARATE MODAL COMPONENT */}
+      <DeleteConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, lesson: null })}
+        onConfirm={executeRemove}
+        title={confirmModal.lesson?.title}
+      />
+
       <div className="max-w-7xl mx-auto space-y-8 md:space-y-12">
-        {/* Header & Filter Controls */}
+        {/* HEADER & FILTER SECTION */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end border-b border-[#1A1612] pb-8 gap-8">
           <div className="space-y-3">
             <h1 className="text-3xl md:text-5xl font-serif text-[#F4EFEA] tracking-tight">
@@ -118,203 +130,69 @@ export default function UserFavoritePage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3 w-full lg:w-auto">
-            <div className="flex-1 lg:flex-none flex items-center gap-2 bg-[#0F0E0C] border border-[#1A1612] px-3 py-2 rounded-lg">
-              <FiFilter className="text-[#8C8275] text-xs shrink-0" />
+          <div className="flex items-center gap-4">
+            <div className="bg-[#0F0E0C] border border-[#1A1612] px-4 py-2 rounded-xl flex items-center gap-2">
+              <FiFilter className="text-gray-600 text-xs" />
               <select
                 value={selectedCategory}
                 onChange={e => setSelectedCategory(e.target.value)}
-                className="w-full bg-transparent text-[10px] font-mono outline-none text-[#E5A93C] cursor-pointer uppercase tracking-widest"
+                className="bg-transparent text-[10px] font-mono outline-none text-[#E5A93C] uppercase tracking-widest cursor-pointer"
               >
                 <option value="">All Categories</option>
                 <option value="Personal Growth">Personal Growth</option>
                 <option value="Career">Career</option>
-                <option value="Mindset">Mindset</option>
                 <option value="Relationships">Relationships</option>
-                <option value="Mistakes Learned">Mistakes Learned</option>
               </select>
             </div>
-
-            <div className="flex-1 lg:flex-none flex items-center gap-2 bg-[#0F0E0C] border border-[#1A1612] px-3 py-2 rounded-lg">
-              <select
-                value={selectedTone}
-                onChange={e => setSelectedTone(e.target.value)}
-                className="w-full bg-transparent text-[10px] font-mono outline-none text-[#E5A93C] cursor-pointer uppercase tracking-widest"
-              >
-                <option value="">All Tones</option>
-                <option value="Motivational">Motivational</option>
-                <option value="Sad">Sad</option>
-                <option value="Realization">Realization</option>
-                <option value="Gratitude">Gratitude</option>
-              </select>
-            </div>
-
-            {(selectedCategory || selectedTone) && (
-              <button
-                onClick={() => {
-                  setSelectedCategory('');
-                  setSelectedTone('');
-                }}
-                className="w-full lg:w-auto text-[10px] font-mono text-red-500/70 hover:text-red-500 underline underline-offset-4 py-2"
-              >
-                Clear Filters
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Content Section */}
+        {/* WISDOM CARDS GRID */}
         {favorites.length > 0 ? (
-          <>
-            {/* Desktop Table View */}
-            <div className="hidden lg:block bg-[#0F0E0C] border border-[#1A1612] rounded-xl overflow-hidden shadow-2xl">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-black/40 text-[10px] uppercase font-mono text-[#8C8275] tracking-[0.2em] border-b border-[#1A1612]">
-                    <tr>
-                      <th className="p-6 font-medium">Preview</th>
-                      <th className="p-6 font-medium">Wisdom Entry</th>
-                      <th className="p-6 font-medium">Classification</th>
-                      <th className="p-6 font-medium">Impact</th>
-                      <th className="p-6 text-right font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#1A1612]/40">
-                    {favorites.map(lesson => (
-                      <tr
-                        key={lesson._id}
-                        className="hover:bg-white/[0.02] transition-colors group"
-                      >
-                        <td className="p-6">
-                          <div className="w-16 h-12 rounded bg-zinc-900 overflow-hidden border border-[#26221C]">
-                            <img
-                              src={
-                                lesson.image ||
-                                'https://i.ibb.co/L5M0Y8Y/avatar.png'
-                              }
-                              alt="thumbnail"
-                              className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
-                            />
-                          </div>
-                        </td>
-                        <td className="p-6">
-                          <h3 className="text-[#F4EFEA] font-serif text-base line-clamp-1 group-hover:text-[#E5A93C] transition-colors">
-                            {lesson.title}
-                          </h3>
-                          <p className="text-[10px] font-mono text-[#5C544A] mt-1 uppercase">
-                            Ref: {lesson._id.slice(-6).toUpperCase()}
-                          </p>
-                        </td>
-                        <td className="p-6">
-                          <div className="flex flex-col gap-1">
-                            <span className="text-[9px] font-mono text-[#E5A93C] bg-[#E5A93C]/5 border border-[#E5A93C]/10 px-2 py-0.5 w-fit rounded-sm">
-                              {lesson.category}
-                            </span>
-                            <span className="text-[9px] font-mono text-[#8C8275] uppercase tracking-tighter">
-                              {lesson.emotionalTone}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="p-6">
-                          <div className="flex items-center gap-2 font-mono text-xs text-[#8C8275]">
-                            <span className="text-red-500/60">❤️</span>{' '}
-                            {lesson.likesCount || 0}
-                          </div>
-                        </td>
-                        <td className="p-6 text-right">
-                          <div className="flex justify-end gap-3">
-                            <button
-                              onClick={() =>
-                                router.push(`/public-lessons/${lesson._id}`)
-                              }
-                              className="p-2.5 bg-black/40 border border-[#26221C] text-[#8C8275] hover:text-[#E5A93C] rounded-lg transition-all"
-                            >
-                              <FiEye size={15} />
-                            </button>
-                            <button
-                              onClick={() => handleRemoveFavorite(lesson._id)}
-                              className="p-2.5 bg-black/40 border border-[#26221C] text-[#8C8275] hover:text-red-500 rounded-lg transition-all"
-                            >
-                              <FiTrash2 size={15} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:hidden gap-4">
-              {favorites.map(lesson => (
-                <div
-                  key={lesson._id}
-                  className="bg-[#0F0E0C] border border-[#1A1612] p-5 rounded-2xl space-y-4 group"
-                >
-                  <div className="flex gap-4">
-                    <div className="w-20 h-20 rounded-xl bg-zinc-900 overflow-hidden border border-[#26221C] shrink-0">
-                      <img
-                        src={
-                          lesson.image || 'https://i.ibb.co/L5M0Y8Y/avatar.png'
-                        }
-                        alt="thumbnail"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-[#F4EFEA] font-serif text-lg line-clamp-2 group-hover:text-[#E5A93C] transition-colors">
-                        {lesson.title}
-                      </h3>
-                      <div className="mt-2 flex items-center gap-3">
-                        <span className="text-[9px] font-mono text-[#E5A93C] uppercase tracking-widest">
-                          {lesson.category}
-                        </span>
-                        <span className="text-red-500/60 text-xs font-mono">
-                          ❤️ {lesson.likesCount || 0}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between pt-4 border-t border-[#1A1612]">
-                    <span className="text-[9px] font-mono text-[#5C544A] uppercase">
-                      Ref: {lesson._id.slice(-6).toUpperCase()}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() =>
-                          router.push(`/public-lessons/${lesson._id}`)
-                        }
-                        className="p-3 bg-black/40 border border-[#26221C] text-[#8C8275] rounded-xl"
-                      >
-                        <FiEye size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleRemoveFavorite(lesson._id)}
-                        className="p-3 bg-black/40 border border-[#26221C] text-red-500/70 rounded-xl"
-                      >
-                        <FiTrash2 size={18} />
-                      </button>
-                    </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {favorites.map(lesson => (
+              <motion.div
+                key={lesson._id}
+                whileHover={{ y: -5 }}
+                className="bg-[#0F0E0C] border border-[#1A1612] rounded-2xl overflow-hidden group shadow-xl"
+              >
+                <div className="relative aspect-video overflow-hidden">
+                  <img
+                    src={lesson.image}
+                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                    alt="insight"
+                  />
+                </div>
+                <div className="p-6">
+                  <h3 className="text-[#F4EFEA] font-serif text-base line-clamp-1 mb-4">
+                    {lesson.title}
+                  </h3>
+                  <div className="flex justify-between items-center border-t border-[#1A1612] pt-4">
+                    <button
+                      onClick={() =>
+                        router.push(`/public-lessons/${lesson._id}`)
+                      }
+                      className="text-[#E5A93C] text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 hover:text-white transition-all"
+                    >
+                      View <FiEye />
+                    </button>
+                    <button
+                      onClick={() => handleOpenModal(lesson)}
+                      className="text-red-500/40 hover:text-red-500 transition-colors p-2"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </>
+              </motion.div>
+            ))}
+          </div>
         ) : (
-          <div className="py-24 px-6 text-center flex flex-col items-center gap-6 bg-[#0F0E0C] border border-[#1A1612] rounded-2xl">
-            <div className="w-16 h-16 bg-[#0A0908] border border-[#1A1612] rounded-full flex items-center justify-center">
-              <FiInfo className="text-[#5C544A] text-2xl" />
-            </div>
-            <div className="space-y-2">
-              <p className="text-xl font-serif italic text-[#8C8275]">
-                "Silence in the archive."
-              </p>
-              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#5C544A]">
-                No wisdom matches your filter criteria.
-              </p>
-            </div>
+          <div className="py-24 text-center bg-[#0F0E0C] border border-[#1A1612] rounded-3xl">
+            <FiInfo className="mx-auto text-[#26221C] mb-4 text-3xl" />
+            <p className="text-sm font-mono uppercase tracking-[0.2em] text-[#5C544A]">
+              Archive is empty
+            </p>
           </div>
         )}
       </div>

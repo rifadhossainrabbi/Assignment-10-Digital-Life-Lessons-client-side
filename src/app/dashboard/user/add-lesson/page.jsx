@@ -15,6 +15,7 @@ import { HiOutlineLightBulb } from 'react-icons/hi';
 import toast, { Toaster } from 'react-hot-toast';
 import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/reusableApi';
 
 export default function AddLessonPage() {
   const router = useRouter();
@@ -44,10 +45,15 @@ export default function AddLessonPage() {
   // 1. Fetch user's current lesson count for limit validation
   useEffect(() => {
     if (user?.id) {
-      fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/lessons/user/${user.id}`)
-        .then(res => res.json())
-        .then(data => setMyLessonCount(data.length))
-        .catch(err => console.error('Archive Sync Error:', err));
+      const getCount = async () => {
+        try {
+          const data = await api.get(`/lessons/user/${user.id}`);
+          setMyLessonCount(data.length);
+        } catch (err) {
+          console.error('Archive Sync Error:', err.message);
+        }
+      };
+      getCount();
     }
   }, [user?.id]);
 
@@ -103,16 +109,13 @@ export default function AddLessonPage() {
       let finalImageUrl =
         'https://placehold.co/600x400/14110C/E5A93C?text=NO+VISUAL+ARCHIVED';
 
-      // Upload image to ImgBB if a file is selected
+      // imgbb api fetch for photo upload
       if (selectedFile) {
         const formData = new FormData();
         formData.append('image', selectedFile);
         const imgRes = await fetch(
           `https://api.imgbb.com/1/upload?key=${process.env.NEXT_PUBLIC_IMGBB_API_KEY}`,
-          {
-            method: 'POST',
-            body: formData,
-          },
+          { method: 'POST', body: formData },
         );
         const imgData = await imgRes.json();
         if (imgData.success) finalImageUrl = imgData.data.url;
@@ -122,7 +125,7 @@ export default function AddLessonPage() {
         title,
         category,
         emotionalTone,
-        accessLevel: isPremiumUser ? accessLevel : 'Free', // Force Free for non-premium
+        accessLevel: isPremiumUser ? accessLevel : 'Free',
         description,
         tags,
         image: finalImageUrl,
@@ -135,27 +138,25 @@ export default function AddLessonPage() {
         },
       };
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/lessons`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(lessonData),
-        },
-      );
+      await api.post('/lessons', lessonData);
 
-      if (response.ok) {
-        toast.success('Wisdom successfully archived!', { id: processToast });
-        router.push('/dashboard/user/my-lessons');
-      } else {
-        throw new Error('Database synchronization failed');
-      }
+      toast.success('Wisdom successfully archived!', { id: processToast });
+      router.push('/dashboard/user/my-lessons');
     } catch (error) {
-      toast.error(error.message, { id: processToast });
+      toast.error(error.message || 'Database synchronization failed', {
+        id: processToast,
+      });
     } finally {
       setIsPublishing(false);
     }
   };
+
+  if (authLoading)
+    return (
+      <div className="min-h-screen bg-[#0F0D0A] flex items-center justify-center font-mono text-[#E5A93C] animate-pulse">
+        AUTHENTICATING...
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-[#0F0D0A] text-[#E6DFD3] p-4 md:p-10 font-sans">

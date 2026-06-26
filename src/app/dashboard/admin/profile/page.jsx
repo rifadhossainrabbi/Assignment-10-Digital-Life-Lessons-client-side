@@ -14,6 +14,7 @@ import {
 import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { api } from '@/lib/reusableApi';
 
 const AdminProfilePage = () => {
   const { data: session, isPending } = authClient.useSession();
@@ -39,10 +40,7 @@ const AdminProfilePage = () => {
 
   const fetchAdminProfile = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/users`,
-      );
-      const allUsers = await response.json();
+      const allUsers = await api.get('/admin/users');
 
       const currentAdmin = allUsers.find(
         u => u.role === 'admin' && u.email === currentUser.email,
@@ -57,7 +55,7 @@ const AdminProfilePage = () => {
       }
       setLoading(false);
     } catch (error) {
-      console.error('Core archive scan failed:', error);
+      console.error('Core archive scan failed:', error.message);
       setLoading(false);
     }
   };
@@ -65,26 +63,16 @@ const AdminProfilePage = () => {
   const handleUpdate = async e => {
     e.preventDefault();
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/profile/update/${adminData._id}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
-        },
-      );
+      await api.patch(`/admin/profile/update/${adminData._id}`, formData);
 
-      if (response.ok) {
-        toast.success('Admin profile credentials updated successfully!');
-        setIsEditing(false);
-        fetchAdminProfile();
-      }
+      toast.success('Admin profile credentials updated successfully!');
+      setIsEditing(false);
+      fetchAdminProfile();
     } catch (err) {
-      toast.error('Registry sync failed');
+      toast.error(err.message || 'Registry sync failed');
     }
   };
-
-  // name er first 2 digit 
+  // name er first 2 digit
   const getInitials = name => {
     if (!name) return 'AD';
     return name.substring(0, 2).toUpperCase();

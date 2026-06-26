@@ -1,64 +1,29 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import {
-  Check,
-  Minus,
-  Zap,
-  Crown,
-  HelpCircle,
-  ArrowRight,
-  Star,
-} from 'lucide-react';
-import toast, { Toaster } from 'react-hot-toast';
-
-// Dummy Session - Replace with your actual Better-Auth logic (e.g., useSession())
-const mockSession = {
-  user: { isPremium: false, email: 'candidate@example.com', name: 'User' },
-  status: 'authenticated',
-};
+import { Check, Minus, Crown, Star } from 'lucide-react';
+import { authClient } from '@/lib/auth-client'; // Real Auth Client
 
 export default function PricingPage() {
-  // Replace with: const { data: session, status } = useSession();
-  const { user, status } = { user: mockSession.user, status: 'authenticated' };
-  const [isRedirecting, setIsRedirecting] = useState(false);
-  const isPremiumUser = user?.isPremium === true;
+  // Requirement: Use real session data from Better Auth
+  const { data: session, isPending } = authClient.useSession();
+  const user = session?.user;
 
-  const handleUpgrade = async () => {
-    setIsRedirecting(true);
-    const loadingToast = toast.loading(
-      'Connecting to Stripe secure gateway...',
+  // Logical check to see if the user is already on the premium plan
+  const isPremiumUser = user?.plan === 'premium';
+
+  // Loading state while verifying user session
+  if (isPending) {
+    return (
+      <div className="min-h-screen bg-[#09090B] flex items-center justify-center font-mono text-indigo-500 uppercase tracking-widest">
+        Verifying Archives...
+      </div>
     );
-
-    try {
-      // Your Backend Route: /create-checkout-session
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/create-checkout-session`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user?.id, email: user?.email }),
-        },
-      );
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('Initialization failed');
-      }
-    } catch (error) {
-      toast.error('Payment gateway error. Please try again.', {
-        id: loadingToast,
-      });
-      setIsRedirecting(false);
-    }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-[#09090B] text-zinc-100 font-sans selection:bg-indigo-500/30 pb-20">
-      <Toaster position="top-center" />
-
       {/* --- HERO SECTION --- */}
       <div className="pt-24 pb-16 px-6 text-center">
         <motion.div
@@ -122,7 +87,7 @@ export default function PricingPage() {
             disabled
             className="w-full py-3 rounded-xl border border-zinc-700 text-zinc-500 text-xs font-semibold tracking-widest uppercase"
           >
-            Active by Default
+            {isPremiumUser ? 'Plan Subscribed' : 'Active by Default'}
           </button>
         </motion.div>
 
@@ -172,17 +137,15 @@ export default function PricingPage() {
             </ul>
           </div>
 
-          {/* Plan action */}
+          {/* Requirement: Keep the original Form action system for Stripe */}
           <form action="/api/checkout_sessions" method="POST">
-            <section>
-              <button
-                type="submit"
-                role="link"
-                className="w-full py-3 rounded-xl bg-indigo-600 text-white text-xs font-bold tracking-widest uppercase hover:bg-indigo-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                Checkout
-              </button>
-            </section>
+            <button
+              type="submit"
+              disabled={isPremiumUser}
+              className="w-full py-3 rounded-xl bg-indigo-600 text-white text-xs font-bold tracking-widest uppercase hover:bg-indigo-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isPremiumUser ? 'Already Premium ⭐' : 'Upgrade'}
+            </button>
           </form>
         </motion.div>
       </div>
@@ -283,7 +246,7 @@ export default function PricingPage() {
               </h4>
               <p className="text-zinc-400 text-xs leading-relaxed">
                 Once upgraded, any lesson marked as "Premium Access" will
-                automatically unlock for you in the Public Lessons feed.
+                automatically unlock for you in the feed.
               </p>
             </div>
           </div>

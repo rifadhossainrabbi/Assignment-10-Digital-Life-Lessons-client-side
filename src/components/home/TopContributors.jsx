@@ -5,27 +5,28 @@ import { motion } from 'framer-motion';
 import { FiAward, FiBookOpen } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { api } from '@/lib/reusableApi';
 
 const TopContributors = () => {
   const router = useRouter();
   const [contributors, setContributors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const serverUrl =
-    process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000';
 
   useEffect(() => {
-    fetch(`${serverUrl}/top-contributors`)
-      .then(res => res.json())
-      .then(data => {
+    const fetchContributors = async () => {
+      try {
+        setLoading(true);
+        const data = await api.get('/top-contributors');
         setContributors(data);
+      } catch (err) {
+        console.error('Contributor Registry Sync Error:', err.message);
+      } finally {
         setLoading(false);
-      })
-      .catch(err => {
-        console.error('Archive Sync Error:', err);
-        setLoading(false);
-      });
-  }, [serverUrl]);
-  console.log(contributors);
+      }
+    };
+
+    fetchContributors();
+  }, []);
 
   if (loading) {
     return (
@@ -55,7 +56,7 @@ const TopContributors = () => {
           {contributors.length > 0 ? (
             contributors.map((person, idx) => (
               <motion.div
-                key={person._id} 
+                key={person._id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1 }}

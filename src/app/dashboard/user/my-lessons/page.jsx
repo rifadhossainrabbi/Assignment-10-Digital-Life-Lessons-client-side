@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiEye,
   FiEdit2,
@@ -12,21 +11,19 @@ import {
   FiLock,
   FiGlobe,
   FiStar,
-  FiAlertTriangle,
-  FiX,
 } from 'react-icons/fi';
 import toast, { Toaster } from 'react-hot-toast';
 import { authClient } from '@/lib/auth-client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/reusableApi';
+import DeleteLessonModal from '../../DeleteLessonModal';
 
 export default function MyLessonsPage() {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
   const isPremiumUser = user?.plan === 'premium' || false;
-  const serverUrl =
-    process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000';
 
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,21 +32,20 @@ export default function MyLessonsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [lessonToDelete, setLessonToDelete] = useState(null);
 
-    useEffect(() => {
-      if (!isPending && !session) {
-        router.replace('/signin');
-      }
-    }, [session, isPending, router]);
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.replace('/signin');
+    }
+  }, [session, isPending, router]);
 
   const fetchMyLessons = async () => {
     if (!user?.id) return;
     try {
       setLoading(true);
-      const res = await fetch(`${serverUrl}/lessons/user/${user.id}`);
-      const data = await res.json();
+      const data = await api.get(`/lessons/user/${user.id}`);
       setLessons(data);
     } catch (error) {
-      toast.error('Could not sync with archives');
+      toast.error(error.message || 'Could not sync with archives');
     } finally {
       setLoading(false);
     }
@@ -72,20 +68,17 @@ export default function MyLessonsPage() {
   const executeDelete = async () => {
     if (!lessonToDelete) return;
     try {
-      const res = await fetch(`${serverUrl}/lessons/${lessonToDelete._id}`, {
-        method: 'DELETE',
+      await api.delete(`/lessons/${lessonToDelete._id}`);
+
+      setLessons(prev => prev.filter(l => l._id !== lessonToDelete._id));
+      toast.success('Wisdom erased from archives', {
+        style: {
+          background: '#1A1612',
+          color: '#E5A93C',
+          border: '1px solid #231E15',
+        },
       });
-      if (res.ok) {
-        setLessons(prev => prev.filter(l => l._id !== lessonToDelete._id));
-        toast.success('Wisdom erased from archives', {
-          style: {
-            background: '#1A1612',
-            color: '#E5A93C',
-            border: '1px solid #231E15',
-          },
-        });
-        closeDeleteModal();
-      }
+      closeDeleteModal();
     } catch (err) {
       toast.error('Deletion failed');
     }
@@ -94,19 +87,12 @@ export default function MyLessonsPage() {
   const handleToggleVisibility = async (id, current) => {
     const next = current === 'Public' ? 'Private' : 'Public';
     try {
-      const res = await fetch(`${serverUrl}/lessons/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visibility: next }),
-      });
-      if (res.ok) {
-        setLessons(prev =>
-          prev.map(l => (l._id === id ? { ...l, visibility: next } : l)),
-        );
-        toast.success(`Wisdom is now ${next}`, {
-          style: { background: '#1A1612', color: '#E5A93C' },
-        });
-      }
+      await api.patch(`/lessons/${id}`, { visibility: next });
+
+      setLessons(prev =>
+        prev.map(l => (l._id === id ? { ...l, visibility: next } : l)),
+      );
+      toast.success(`Wisdom is now ${next}`);
     } catch (err) {
       toast.error('Sync failed');
     }
@@ -114,22 +100,17 @@ export default function MyLessonsPage() {
 
   const handleToggleAccess = async (id, current) => {
     if (!isPremiumUser) {
-      toast.error('Premium access required');
+      toast.error('Premium access required to change access levels');
       return;
     }
     const next = current === 'Premium' ? 'Free' : 'Premium';
     try {
-      const res = await fetch(`${serverUrl}/lessons/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessLevel: next }),
-      });
-      if (res.ok) {
-        setLessons(prev =>
-          prev.map(l => (l._id === id ? { ...l, accessLevel: next } : l)),
-        );
-        toast.success(`Access level set to ${next}`);
-      }
+      await api.patch(`/lessons/${id}`, { accessLevel: next });
+
+      setLessons(prev =>
+        prev.map(l => (l._id === id ? { ...l, accessLevel: next } : l)),
+      );
+      toast.success(`Access level set to ${next}`);
     } catch (err) {
       toast.error('Update failed');
     }
@@ -146,54 +127,13 @@ export default function MyLessonsPage() {
     <div className="min-h-screen bg-[#0F0D0A] text-[#E6DFD3] p-4 md:p-12">
       <Toaster />
 
-      {/* --- DELETE CONFIRMATION MODAL --- */}
-      <AnimatePresence>
-        {isDeleteModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={closeDeleteModal}
-              className="absolute inset-0 bg-black/90 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-[#14110C] border border-[#231E15] rounded-3xl p-8 shadow-2xl"
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6 border border-red-500/20">
-                  <FiAlertTriangle className="text-red-500 text-3xl" />
-                </div>
-                <h3 className="text-2xl font-serif text-[#F4EFEA] mb-3">
-                  Erase Wisdom?
-                </h3>
-                <p className="text-sm text-[#5C544A] leading-relaxed mb-10">
-                  You are about to permanently remove{' '}
-                  <span className="text-white">"{lessonToDelete?.title}"</span>.
-                  This action cannot be undone.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 w-full">
-                  <button
-                    onClick={closeDeleteModal}
-                    className="flex-1 py-4 rounded-xl border border-[#231E15] text-[#5C544A] text-xs font-black uppercase tracking-widest hover:bg-white/5 transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={executeDelete}
-                    className="flex-1 py-4 rounded-xl bg-red-600 text-white text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg"
-                  >
-                    Erase Forever
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* --- NEW EXTERNAL MODAL COMPONENT --- */}
+      <DeleteLessonModal
+        isOpen={isDeleteModalOpen}
+        onClose={closeDeleteModal}
+        onConfirm={executeDelete}
+        lessonTitle={lessonToDelete?.title}
+      />
 
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
@@ -214,7 +154,7 @@ export default function MyLessonsPage() {
           </Link>
         </div>
 
-        {/* --- MOBILE CARD VIEW (Hidden on Desktop) --- */}
+        {/* --- MOBILE CARD VIEW --- */}
         <div className="grid grid-cols-1 gap-4 lg:hidden">
           {lessons.map(lesson => (
             <div
@@ -289,7 +229,7 @@ export default function MyLessonsPage() {
           ))}
         </div>
 
-        {/* --- DESKTOP TABLE VIEW (Hidden on Mobile) --- */}
+        {/* --- DESKTOP TABLE VIEW --- */}
         <div className="hidden lg:block bg-[#14110C] border border-[#231E15] rounded-3xl overflow-hidden shadow-2xl">
           <table className="w-full text-left">
             <thead>

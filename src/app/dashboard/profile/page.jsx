@@ -14,13 +14,13 @@ import { authClient } from '@/lib/auth-client';
 import toast, { Toaster } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/reusableApi';
+import Link from 'next/link';
 
 const UserProfile = () => {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
-  const serverUrl =
-    process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000';
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
@@ -34,17 +34,25 @@ const UserProfile = () => {
       setName(user?.name);
       setPhotoURL(user.image || '');
 
-      fetch(`${serverUrl}/lessons/user/${user.id}`)
-        .then(res => res.json())
-        .then(data => setUserLessons(data))
-        .catch(() => toast.error('Could not load your archive'));
+      // 2. Optimized Fetching using api.get
+      const fetchUserData = async () => {
+        try {
+          // Fetching lessons and favorites
+          const [lessonsData, favoritesData] = await Promise.all([
+            api.get(`/lessons/user/${user.id}`),
+            api.get(`/favorites/${user.id}`),
+          ]);
 
-      fetch(`${serverUrl}/favorites/${user.id}`)
-        .then(res => res.json())
-        .then(data => setFavCount(data.length))
-        .catch(() => console.error('Fav count error'));
+          setUserLessons(lessonsData);
+          setFavCount(favoritesData.length);
+        } catch (error) {
+          toast.error(error.message || 'Could not load your archive');
+        }
+      };
+
+      fetchUserData();
     }
-  }, [user, serverUrl]);
+  }, [user]);
 
   useEffect(() => {
     if (!isPending && !session) {
@@ -266,29 +274,31 @@ const UserProfile = () => {
                     whileHover={{ y: -5 }}
                     className="bg-[#14110C] border border-[#231E15] rounded-xl overflow-hidden group"
                   >
-                    <div className="relative aspect-video overflow-hidden">
-                      <img
-                        src={lesson.image}
-                        alt={lesson.title}
-                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700 opacity-60 group-hover:opacity-100"
-                      />
-                      <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[8px] font-mono text-[#E5A93C] uppercase tracking-tighter">
-                        {lesson.category}
+                    <Link href={`/public-lessons/${lesson._id}`}>
+                      <div className="relative aspect-video overflow-hidden">
+                        <img
+                          src={lesson.image}
+                          alt={lesson.title}
+                          className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700 opacity-60 group-hover:opacity-100"
+                        />
+                        <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[8px] font-mono text-[#E5A93C] uppercase tracking-tighter">
+                          {lesson.category}
+                        </div>
                       </div>
-                    </div>
-                    <div className="p-5">
-                      <h4 className="text-sm font-serif text-white line-clamp-1 group-hover:text-[#E5A93C] transition-colors">
-                        {lesson.title}
-                      </h4>
-                      <p className="text-[10px] text-[#5C544A] font-mono mt-2 flex items-center gap-2">
-                        {lesson.accessLevel === 'Premium' ? (
-                          <FiStar className="text-[#E5A93C]" />
-                        ) : (
-                          <FiStar />
-                        )}{' '}
-                        {lesson.accessLevel}
-                      </p>
-                    </div>
+                      <div className="p-5">
+                        <h4 className="text-sm font-serif text-white line-clamp-1 group-hover:text-[#E5A93C] transition-colors">
+                          {lesson.title}
+                        </h4>
+                        <p className="text-[10px] text-[#5C544A] font-mono mt-2 flex items-center gap-2">
+                          {lesson.accessLevel === 'Premium' ? (
+                            <FiStar className="text-[#E5A93C]" />
+                          ) : (
+                            <FiStar />
+                          )}{' '}
+                          {lesson.accessLevel}
+                        </p>
+                      </div>
+                    </Link>
                   </motion.div>
                 ))}
             </div>

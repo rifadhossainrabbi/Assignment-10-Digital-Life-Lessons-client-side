@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { api } from '@/lib/reusableApi';
 
 /**
  * Centered Confirmation Modal Component
@@ -94,14 +95,10 @@ const ReportedLessonsPage = () => {
   const fetchReports = async () => {
     try {
       setLoading(true);
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/reported-lessons`,
-      );
-      if (!res.ok) throw new Error();
-      const data = await res.json();
+      const data = await api.get('/admin/reported-lessons');
       setReports(data);
     } catch (err) {
-      toast.error('System synchronization failed');
+      toast.error(err.message || 'System synchronization failed');
     } finally {
       setLoading(false);
     }
@@ -112,15 +109,11 @@ const ReportedLessonsPage = () => {
     setConfirmModal({ isOpen: false });
     try {
       setActionLoading(lessonId);
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/reports/ignore/${lessonId}`,
-        { method: 'DELETE' },
-      );
-      if (!res.ok) throw new Error();
+      await api.delete(`/admin/reports/ignore/${lessonId}`);
       toast.success('Flags cleared successfully');
       fetchReports();
     } catch (err) {
-      toast.error('Failed to clear reports');
+      toast.error(err.message || 'Failed to clear reports');
     } finally {
       setActionLoading(null);
     }
@@ -131,16 +124,12 @@ const ReportedLessonsPage = () => {
     setConfirmModal({ isOpen: false });
     try {
       setActionLoading(lessonId);
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/admin/lessons/${lessonId}`,
-        { method: 'DELETE' },
-      );
-      if (!res.ok) throw new Error();
+      await api.delete(`/admin/lessons/${lessonId}`);
       toast.success('Lesson purged completely');
       fetchReports();
       setSelectedReport(null);
     } catch (err) {
-      toast.error('Purge sequence failed');
+      toast.error(err.message || 'Purge sequence failed');
     } finally {
       setActionLoading(null);
     }

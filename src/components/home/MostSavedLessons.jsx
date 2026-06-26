@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation'; // Import for navigation
 import { authClient } from '@/lib/auth-client';
+import { api } from '@/lib/reusableApi';
 
 const MostSavedLessons = () => {
   const router = useRouter();
@@ -18,12 +19,11 @@ const MostSavedLessons = () => {
     const fetchTopLessons = async () => {
       try {
         const userId = session?.user?.id || '';
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_SERVER_URL}/most-saved-lessons?userId=${userId}`,
-        );
-        setLessons(res.data);
+        // Using api.get - Query params are passed directly in the string
+        const data = await api.get(`/most-saved-lessons?userId=${userId}`);
+        setLessons(data);
       } catch (error) {
-        console.error('Error fetching lessons', error);
+        console.error('Archive retrieval error:', error.message);
       } finally {
         setLoading(false);
       }
@@ -34,7 +34,7 @@ const MostSavedLessons = () => {
   // Navigate to detail page if user is logged in
   const handleNavigateDetail = lessonId => {
     if (!session?.user) {
-      toast.error('Please login to explore this wisdom!');
+      toast.error('Authentication required to explore this wisdom!');
       return;
     }
     router.push(`/public-lessons/${lessonId}`);
@@ -44,31 +44,32 @@ const MostSavedLessons = () => {
   const handleToggleFavorite = async (e, lessonId) => {
     e.stopPropagation();
 
-    if (!session?.user) return toast.error('Please login to save wisdom!');
+    if (!session?.user)
+      return toast.error('Identification required to preserve wisdom!');
 
     try {
-      const res = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/lessons/${lessonId}/favorite`,
-        { userId: session.user.id },
-      );
+      // POST request via reusable instance
+      const resData = await api.post(`/lessons/${lessonId}/favorite`, {
+        userId: session.user.id,
+      });
 
-      // Optimistically update the UI state
+      // Optimistically update the local state for real-time UI feel
       setLessons(prev =>
         prev.map(lesson =>
           lesson._id === lessonId
             ? {
                 ...lesson,
-                hasFavorited: res.data.favorited,
-                favoritesCount: res.data.favorited
+                hasFavorited: resData.favorited,
+                favoritesCount: resData.favorited
                   ? (lesson.favoritesCount || 0) + 1
                   : Math.max(0, (lesson.favoritesCount || 0) - 1),
               }
             : lesson,
         ),
       );
-      toast.success(res.data.message);
+      toast.success(resData.message);
     } catch (error) {
-      toast.error('Action failed');
+      toast.error(error.message || 'Sync failed');
     }
   };
 
@@ -106,7 +107,7 @@ const MostSavedLessons = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              onClick={() => handleNavigateDetail(lesson._id)} 
+              onClick={() => handleNavigateDetail(lesson._id)}
               className="group relative bg-[#111] border border-white/5 rounded-[32px] overflow-hidden hover:border-[#d4af37]/30 transition-all duration-500 shadow-2xl cursor-pointer"
             >
               {/* Media Container */}

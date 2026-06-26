@@ -2,6 +2,7 @@ import { stripe } from '@/lib/stripe';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle2, ArrowRight, Mail } from 'lucide-react';
+import { api } from '@/lib/reusableApi';
 
 export default async function Success({ searchParams }) {
   const { session_id } = await searchParams;
@@ -10,7 +11,7 @@ export default async function Success({ searchParams }) {
     throw new Error('Please provide a valid session_id');
   }
 
-  // Stripe থেকে সেশন ডাটা আনা
+  // Stripe theke session data
   const session = await stripe.checkout.sessions.retrieve(session_id, {
     expand: ['line_items', 'payment_intent'],
   });
@@ -25,17 +26,11 @@ export default async function Success({ searchParams }) {
   if (status === 'complete') {
     //plan upadate api
     try {
-      await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/users/plan-update`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: customerEmail }),
-        },
-      );
-      console.log('Plan upgrade request sent for:', customerEmail);
+      await api.patch('/users/plan-update', { email: customerEmail });
+
+      console.log('Plan upgrade processed for:', customerEmail);
     } catch (err) {
-      console.error('API Call Error:', err);
+      console.error('API Plan Update Error:', err.message);
     }
 
     return (

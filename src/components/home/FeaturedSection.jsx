@@ -2,19 +2,26 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FiArrowRight, FiHeart, FiTag } from 'react-icons/fi';
+import { api } from '@/lib/reusableApi';
 
 const FeaturedSection = () => {
   const [featuredLessons, setFeaturedLessons] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/featured-lessons`)
-      .then(res => res.json())
-      .then(data => {
+    const fetchFeatured = async () => {
+      try {
+        setLoading(true);
+        const data = await api.get('/featured-lessons');
         setFeaturedLessons(data);
+      } catch (err) {
+        console.error('Failed to load featured wisdom:', err.message);
+      } finally {
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      }
+    };
+
+    fetchFeatured();
   }, []);
 
   if (loading) {
@@ -79,7 +86,7 @@ const FeaturedSection = () => {
                 </h3>
 
                 <p className="text-[#8C8275] text-sm font-serif italic mb-6 line-clamp-3 leading-relaxed">
-                  "{lesson.description}"
+                  {lesson.description}
                 </p>
 
                 {/* Creator Info & Footer */}
@@ -95,7 +102,7 @@ const FeaturedSection = () => {
                     </span>
                   </div>
                   <Link
-                    href={`/lessons/${lesson._id}`}
+                    href={`/public-lessons/${lesson._id}`}
                     className="text-[10px] font-bold text-[#E5A93C] uppercase tracking-[0.2em] hover:text-white transition-colors"
                   >
                     See Details

@@ -19,6 +19,7 @@ import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { authClient } from '@/lib/auth-client';
 import ReportModal from '@/components/ReportModal';
+import { api } from '@/lib/reusableApi';
 
 export default function PublicLessonDetailPage() {
   const params = useParams();
@@ -64,16 +65,17 @@ export default function PublicLessonDetailPage() {
     const fetchDetails = async () => {
       try {
         setLoading(true);
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SERVER_URL}/lessons/${params.id}?userId=${currentUserId || ''}`,
+        // Using api.get - Automatically handles JSON parsing and Base URL
+        const data = await api.get(
+          `/lessons/${params.id}?userId=${currentUserId || ''}`,
         );
-        const data = await res.json();
+
         setLesson(data);
         setIsLiked(data.hasLiked);
         setIsFavorited(data.hasFavorited);
         setComments(data.comments || []);
       } catch (error) {
-        toast.error('Connection to archives failed');
+        toast.error(error.message || 'Connection to archives failed');
       } finally {
         setLoading(false);
       }
@@ -86,13 +88,10 @@ export default function PublicLessonDetailPage() {
     if (!params?.id) return;
     const fetchSimilar = async () => {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SERVER_URL}/lessons/${params.id}/similar`,
-        );
-        const data = await res.json();
+        const data = await api.get(`/lessons/${params.id}/similar`);
         setSimilarLessons(data);
       } catch (error) {
-        console.error('Similar lessons fetch failed:', error);
+        console.error('Similar lessons fetch failed:', error.message);
       }
     };
     fetchSimilar();
@@ -102,15 +101,10 @@ export default function PublicLessonDetailPage() {
   const handleLike = async () => {
     if (!currentUserId) return router.push('/signin');
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/lessons/${lesson._id}/like`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: currentUserId }),
-        },
-      );
-      const data = await res.json();
+      const data = await api.post(`/lessons/${lesson._id}/like`, {
+        userId: currentUserId,
+      });
+
       setIsLiked(data.liked);
       setLesson(prev => ({
         ...prev,
@@ -119,7 +113,7 @@ export default function PublicLessonDetailPage() {
           : Math.max(0, (prev.likesCount || 0) - 1),
       }));
     } catch (err) {
-      toast.error('Action failed');
+      toast.error(err.message || 'Action failed');
     }
   };
 
@@ -127,15 +121,10 @@ export default function PublicLessonDetailPage() {
   const handleFavorite = async () => {
     if (!currentUserId) return toast.error('Please login to save to favorites');
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/lessons/${lesson._id}/favorite`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: currentUserId }),
-        },
-      );
-      const data = await res.json();
+      const data = await api.post(`/lessons/${lesson._id}/favorite`, {
+        userId: currentUserId,
+      });
+
       setIsFavorited(data.favorited);
       setLesson(prev => ({
         ...prev,
@@ -145,7 +134,7 @@ export default function PublicLessonDetailPage() {
       }));
       toast.success(data.message);
     } catch (err) {
-      toast.error('Save action failed');
+      toast.error(err.message || 'Save action failed');
     }
   };
 
@@ -153,24 +142,17 @@ export default function PublicLessonDetailPage() {
   const handlePostComment = async () => {
     if (!newComment.trim()) return;
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/lessons/${lesson._id}/comments`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: currentUserId,
-            userName: session.user.name,
-            text: newComment,
-          }),
-        },
-      );
-      const data = await res.json();
+      const data = await api.post(`/lessons/${lesson._id}/comments`, {
+        userId: currentUserId,
+        userName: session.user.name,
+        text: newComment,
+      });
+
       setComments([data, ...comments]);
       setNewComment('');
       toast.success('Reflection posted');
     } catch (err) {
-      toast.error('Failed to post comment');
+      toast.error(err.message || 'Failed to post reflection');
     }
   };
 
@@ -179,31 +161,21 @@ export default function PublicLessonDetailPage() {
     if (!session?.user) return toast.error('Please login to report');
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/lessons/${lesson._id}/report`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: session.user.id,
-            userEmail: session.user.email,
-            reason: selectedReason,
-            additionalDetails: details,
-            lessonTitle: lesson.title,
-            timestamp: new Date(),
-          }),
-        },
-      );
+      await api.post(`/lessons/${lesson._id}/report`, {
+        userId: session.user.id,
+        userEmail: session.user.email,
+        reason: selectedReason,
+        additionalDetails: details,
+        lessonTitle: lesson.title,
+        timestamp: new Date(),
+      });
 
-      if (response.ok) {
-        toast.success('Content flagged for moderator review');
-        setShowReportModal(false);
-      }
+      toast.success('Content flagged for moderator review');
+      setShowReportModal(false);
     } catch (err) {
-      toast.error('Network failure');
+      toast.error(err.message || 'Failed to submit report');
     }
   };
-
   if (loading)
     return (
       <div className="min-h-screen bg-[#0A0908] flex flex-col items-center justify-center space-y-4">

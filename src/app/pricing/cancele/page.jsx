@@ -32,9 +32,9 @@ export default function CancelPage() {
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-3">
-          {/* পেমেন্ট আবার চেষ্টা করার জন্য প্রইসিং পেজে পাঠানো */}
+          {/* try again */}
           <Link
-            href="/dashboard/user/upgrade"
+            href="/pricing"
             className="w-full bg-white hover:bg-neutral-200 text-black font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
           >
             <RefreshCcw className="w-4 h-4" />
