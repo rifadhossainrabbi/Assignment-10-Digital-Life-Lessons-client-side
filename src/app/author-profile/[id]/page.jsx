@@ -71,11 +71,17 @@ export default function AuthorProfilePage() {
           {/* Subtle design element */}
           <div className="absolute top-0 right-0 w-48 h-48 bg-[#E5A93C]/5 blur-[100px] rounded-full"></div>
 
-          <img
-            src={authorInfo?.image || 'https://via.placeholder.com/150'}
-            className="w-32 h-32 md:w-44 md:h-44 rounded-full object-cover border-2 border-[#1A1612] grayscale hover:grayscale-0 transition-all duration-700 shadow-2xl z-10"
-            alt="Author Identity"
-          />
+          {authorInfo?.image ? (
+            <img
+              src={authorInfo.image}
+              className="w-32 h-32 md:w-44 md:h-44 rounded-full object-cover border-2 border-[#1A1612] grayscale hover:grayscale-0 transition-all duration-700 shadow-2xl z-10"
+              alt="Author Identity"
+            />
+          ) : (
+            <div className="w-32 h-32 md:w-44 md:h-44 rounded-full bg-[#1A1612] flex items-center justify-center border-2 border-[#E5A93C]/20 shadow-2xl z-10 text-4xl md:text-6xl font-serif text-[#E5A93C] uppercase">
+              {authorInfo?.name.slice(0, 2)}
+            </div>
+          )}
 
           <div className="text-center md:text-left flex-1 z-10">
             <h1 className="text-4xl md:text-6xl font-serif text-white mb-2 leading-tight">

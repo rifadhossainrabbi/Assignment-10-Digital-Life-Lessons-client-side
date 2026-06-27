@@ -12,14 +12,14 @@ import {
   FaEye,
   FaEyeSlash,
   FaArchive,
-  FaFlag,
   FaUser,
   FaExternalLinkAlt,
   FaExclamationTriangle,
 } from 'react-icons/fa';
 import { api } from '@/lib/reusableApi';
+import { FiBookOpen } from 'react-icons/fi';
 
-// Confirmation Modal Component for deleting lessons
+// Confirmation Modal Component
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
   if (!isOpen) return null;
   return (
@@ -60,22 +60,22 @@ const ManageLessonsPageByAdmin = () => {
   const [filter, setFilter] = useState('All');
   const [modal, setModal] = useState({ isOpen: false, lesson: null });
 
+
+  const [imageErrors, setImageErrors] = useState({});
+
   const { data: session, isPending } = authClient.useSession();
   const router = useRouter();
 
-  // Load all records from server on mount
   useEffect(() => {
     fetchLessons();
   }, []);
 
-  // Auth Guard: Redirect if session is lost
   useEffect(() => {
     if (!isPending && !session) {
       router.replace('/signin');
     }
   }, [session, isPending, router]);
 
-  // Fetch data function
   const fetchLessons = async () => {
     try {
       const data = await api.get('/admin/all-lessons');
@@ -88,7 +88,6 @@ const ManageLessonsPageByAdmin = () => {
     }
   };
 
-  // ৩. PATCH Request (Token added automatically by apiInstance)
   const handleUpdateStatus = async (id, field, currentValue) => {
     try {
       await api.patch(`/admin/lessons/status/${id}`, {
@@ -101,7 +100,6 @@ const ManageLessonsPageByAdmin = () => {
     }
   };
 
-  // ৪. DELETE Request (Token added automatically by apiInstance)
   const handleDeleteLesson = async () => {
     const { lesson } = modal;
     try {
@@ -114,7 +112,10 @@ const ManageLessonsPageByAdmin = () => {
     setModal({ isOpen: false, lesson: null });
   };
 
-  // Filter lessons based on selected criteria
+  const handleImageError = id => {
+    setImageErrors(prev => ({ ...prev, [id]: true }));
+  };
+
   const filteredLessons = lessons.filter(l => {
     if (filter === 'All') return true;
     if (filter === 'Public' || filter === 'Private')
@@ -133,7 +134,7 @@ const ManageLessonsPageByAdmin = () => {
   }
 
   return (
-    <div className="p-4 md:p-8 lg:p-12 bg-[#0a0a0a] min-h-screen text-white font-sans selection:bg-[#d4af37] selection:text-black">
+    <div className="p-4 md:p-8 lg:p-12 bg-[#0a0a0a] min-h-screen text-white font-sans">
       <Toaster position="top-right" />
 
       <ConfirmationModal
@@ -187,6 +188,7 @@ const ManageLessonsPageByAdmin = () => {
           </div>
         </header>
 
+        {/* Filter Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#111] p-5 rounded-2xl border border-white/5 mb-8">
           <div className="flex items-center gap-3">
             <FaFilter className="text-[#d4af37] text-xs" />
@@ -195,30 +197,19 @@ const ManageLessonsPageByAdmin = () => {
             </span>
           </div>
           <select
-            className="bg-black border border-gray-800 text-[10px] uppercase tracking-widest text-gray-300 py-3 px-4 rounded-xl outline-none focus:border-[#d4af37] transition-all cursor-pointer"
+            className="bg-black border border-gray-800 text-[10px] uppercase tracking-widest text-gray-300 py-3 px-4 rounded-xl outline-none"
             onChange={e => setFilter(e.target.value)}
             value={filter}
           >
             <option value="All">Master Archive</option>
-            <optgroup label="Visibility">
-              <option value="Public">Public Visibility</option>
-              <option value="Private">Private Vault</option>
-            </optgroup>
-            <optgroup label="Status">
-              <option value="Featured">Featured Content</option>
-              <option value="Flagged">Flagged / Reported</option>
-            </optgroup>
-            <optgroup label="Categories">
-              <option value="Personal Growth">Personal Growth</option>
-              <option value="Career">Career</option>
-              <option value="Relationships">Relationships</option>
-              <option value="Mindset">Mindset</option>
-              <option value="Mistakes Learned">Mistakes Learned</option>
-            </optgroup>
+            <option value="Public">Public Visibility</option>
+            <option value="Private">Private Vault</option>
+            <option value="Featured">Featured Content</option>
+            <option value="Flagged">Flagged / Reported</option>
           </select>
         </div>
 
-        {/* Desktop View: Table Layout */}
+        {/* Desktop View Table */}
         <div className="hidden lg:block overflow-hidden rounded-2xl border border-white/5 bg-[#111]">
           <table className="w-full text-left border-collapse">
             <thead className="bg-black/40 text-[9px] uppercase tracking-[3px] text-gray-600 border-b border-gray-800">
@@ -236,54 +227,74 @@ const ManageLessonsPageByAdmin = () => {
                   className="hover:bg-white/[0.01] transition-all group"
                 >
                   <td className="px-8 py-6">
-                    <Link
-                      href={`/public-lessons/${lesson._id}`}
-                      className="group/link flex items-center gap-2 max-w-xs"
-                    >
-                      <h3 className="text-sm font-black text-gray-200 group-hover/link:text-[#d4af37] underline-offset-4 uppercase truncate">
-                        {lesson.title}
-                      </h3>
-                      <FaExternalLinkAlt className="text-[10px] text-gray-700" />
-                    </Link>
-                    <p className="text-[9px] text-gray-600 mt-2 uppercase font-bold flex items-center gap-2">
-                      <FaUser className="text-[8px] text-[#d4af37]" />{' '}
-                      {lesson.author?.name || 'Anonymous_Creator'}
-                    </p>
+                    <div className="flex items-center gap-4">
+                      {/* Image Handler with Fallback Icon */}
+                      <Link
+                        href={`/public-lessons/${lesson._id}`}
+                        className="shrink-0 group/img"
+                      >
+                        <div className="w-12 h-12 rounded-full border border-gray-800 group-hover/img:border-[#d4af37] flex items-center justify-center bg-black overflow-hidden transition-all">
+                          {lesson.image && !imageErrors[lesson._id] ? (
+                            <img
+                              src={lesson.image}
+                              alt="lesson"
+                              className="w-full h-full object-cover"
+                              onError={() => handleImageError(lesson._id)}
+                            />
+                          ) : (
+                            <FiBookOpen className="text-[#d4af37] text-lg" />
+                          )}
+                        </div>
+                      </Link>
+
+                      <div>
+                        <Link
+                          href={`/public-lessons/${lesson._id}`}
+                          className="group/title flex items-center gap-2"
+                        >
+                          <h3 className="text-sm font-black text-gray-200 group-hover/title:text-[#d4af37] uppercase truncate max-w-[200px]">
+                            {lesson.title}
+                          </h3>
+                          <FaExternalLinkAlt className="text-[9px] text-gray-700" />
+                        </Link>
+                        {/* Author Link */}
+                        <Link
+                          href={`/author-profile/${lesson.author?.userId}`}
+                          className="text-[9px] text-gray-500 mt-1 uppercase font-bold flex items-center gap-2 hover:text-white transition-colors"
+                        >
+                          <FaUser className="text-[8px] text-[#d4af37]" />
+                          {lesson.author?.name || 'Anonymous'}
+                        </Link>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-6 py-6">
-                    <span className="text-[9px] font-black border border-gray-800 px-3 py-1 text-gray-500 uppercase bg-black rounded-full">
+                    <span className="text-[9px] font-black border border-gray-800 px-3 py-1 text-gray-500 uppercase rounded-full">
                       {lesson.category}
                     </span>
                   </td>
                   <td className="px-6 py-6">
-                    <div className="flex justify-center gap-5 text-base">
-                      <div
+                    <div className="flex justify-center gap-5 text-sm">
+                      <FaEye
                         className={
                           lesson.visibility === 'Public'
                             ? 'text-emerald-500'
                             : 'text-gray-800'
                         }
-                      >
-                        {lesson.visibility === 'Public' ? (
-                          <FaEye />
-                        ) : (
-                          <FaEyeSlash />
-                        )}
-                      </div>
-                      <div
+                        title="Visibility"
+                      />
+                      <FaCheckCircle
                         className={
                           lesson.isReviewed ? 'text-blue-500' : 'text-gray-800'
                         }
-                      >
-                        <FaCheckCircle />
-                      </div>
-                      <div
+                        title="Reviewed"
+                      />
+                      <FaStar
                         className={
                           lesson.isFeatured ? 'text-[#d4af37]' : 'text-gray-800'
                         }
-                      >
-                        <FaStar />
-                      </div>
+                        title="Featured"
+                      />
                     </div>
                   </td>
                   <td className="px-8 py-6 text-right">
@@ -296,10 +307,9 @@ const ManageLessonsPageByAdmin = () => {
                             lesson.isFeatured,
                           )
                         }
-                        className={`text-[9px] font-black border px-3 py-2 uppercase ${lesson.isFeatured ? 'border-[#d4af37] text-[#d4af37]' : 'border-gray-800 text-gray-600'}`}
+                        className={`text-[9px] font-black border px-3 py-2 uppercase transition-all ${lesson.isFeatured ? 'border-[#d4af37] text-[#d4af37]' : 'border-gray-800 text-gray-600 hover:border-gray-600'}`}
                       >
-                        {' '}
-                        {lesson.isFeatured ? 'FEATURED' : 'MARK FEATURED'}
+                        {lesson.isFeatured ? 'Featured' : 'Mark Featured'}
                       </button>
                       <button
                         onClick={() =>
@@ -309,13 +319,13 @@ const ManageLessonsPageByAdmin = () => {
                             lesson.isReviewed,
                           )
                         }
-                        className={`text-[9px] font-black border px-3 py-2 uppercase ${lesson.isReviewed ? 'border-blue-500 text-blue-500' : 'border-gray-800 text-gray-600'}`}
+                        className={`text-[9px] font-black border px-3 py-2 uppercase transition-all ${lesson.isReviewed ? 'border-blue-500 text-blue-500' : 'border-gray-800 text-gray-600 hover:border-gray-600'}`}
                       >
-                        {lesson.isReviewed ? 'REVIEWED' : 'REVIEW'}
+                        {lesson.isReviewed ? 'Reviewed' : 'Review'}
                       </button>
                       <button
                         onClick={() => setModal({ isOpen: true, lesson })}
-                        className="text-gray-700 hover:text-red-500 p-2"
+                        className="text-gray-700 hover:text-red-500 transition-colors p-2"
                       >
                         <FaTrashAlt size={16} />
                       </button>
@@ -327,21 +337,25 @@ const ManageLessonsPageByAdmin = () => {
           </table>
         </div>
 
-        {/* Mobile View: Card Layout */}
+        {/* Mobile View Card Layout */}
         <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredLessons.map(lesson => (
             <div
               key={lesson._id}
               className="bg-[#111] p-6 rounded-2xl border border-white/5"
             >
-              <h3 className="text-sm font-black text-white uppercase">
+              <Link
+                href={`/public-lessons/${lesson._id}`}
+                className="text-sm font-black text-white uppercase block mb-2 hover:text-[#d4af37]"
+              >
                 {lesson.title}
-              </h3>
-              <div className="flex gap-2 mb-6 mt-2">
-                <span className="text-[8px] font-black bg-black border border-gray-800 px-2 py-1 uppercase">
-                  {lesson.category}
-                </span>
-              </div>
+              </Link>
+              <Link
+                href={`/author-profile/${lesson.author?.userId}`}
+                className="text-[10px] text-gray-500 uppercase mb-4 block hover:text-white"
+              >
+                By {lesson.author?.name}
+              </Link>
               <div className="flex justify-between items-center pt-4 border-t border-gray-900">
                 <div className="flex gap-4">
                   <FaEye
@@ -350,12 +364,7 @@ const ManageLessonsPageByAdmin = () => {
                         ? 'text-emerald-500'
                         : 'text-gray-800'
                     }
-                  />{' '}
-                  <FaCheckCircle
-                    className={
-                      lesson.isReviewed ? 'text-blue-500' : 'text-gray-800'
-                    }
-                  />{' '}
+                  />
                   <FaStar
                     className={
                       lesson.isFeatured ? 'text-[#d4af37]' : 'text-gray-800'
@@ -364,22 +373,10 @@ const ManageLessonsPageByAdmin = () => {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() =>
-                      handleUpdateStatus(
-                        lesson._id,
-                        'isFeatured',
-                        lesson.isFeatured,
-                      )
-                    }
-                    className={`p-2 rounded-lg border ${lesson.isFeatured ? 'border-[#d4af37] text-[#d4af37]' : 'border-gray-800 text-gray-600'}`}
-                  >
-                    <FaStar size={12} />
-                  </button>
-                  <button
                     onClick={() => setModal({ isOpen: true, lesson })}
                     className="p-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/10"
                   >
-                    <FaTrashAlt size={12} />
+                    <FaTrashAlt size={14} />
                   </button>
                 </div>
               </div>
@@ -389,6 +386,6 @@ const ManageLessonsPageByAdmin = () => {
       </div>
     </div>
   );
-};;;
+};
 
 export default ManageLessonsPageByAdmin;

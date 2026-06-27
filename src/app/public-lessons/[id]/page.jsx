@@ -52,36 +52,23 @@ export default function PublicLessonDetailPage() {
   const [reportReason, setReportReason] = useState('Inappropriate Content');
   const [similarLessons, setSimilarLessons] = useState([]);
 
-  // Requirement: State for the share menu
   const [showShareOptions, setShowShareOptions] = useState(false);
 
-  // bortoman location ta  url pathay dawa hocce share korar jonno
   const shareUrl = `${process.env.NEXT_PUBLIC_SERVER_URL}/public-lessons/${params.id}`;
 
   const currentUserId = useMemo(() => session?.user?.id || null, [session]);
 
-  // Calculate reading time based on word count
   const readingTime = useMemo(() => {
     if (!lesson?.description) return 1;
     const words = lesson.description.split(/\s+/).length;
     return Math.ceil(words / 200);
   }, [lesson]);
 
-  // Static random view count 
   const staticViews = useMemo(
     () => Math.floor(Math.random() * 8000) + 1500,
     [],
   );
 
-  // Redirect to signin if not authenticated
-  // eitar jonno reusable api er moddhe conflict hoccile jar jonno lesson share korte jhamela hoccilo
-  // useEffect(() => {
-  //   if (!isPending && !session) {
-  //     router.replace('/signin');
-  //   }
-  // }, [session, isPending, router]);
-
-  // Fetch lesson details including comments, like and favorite status
   useEffect(() => {
     if (!params?.id || isPending) return;
     const fetchDetails = async () => {
@@ -104,8 +91,6 @@ export default function PublicLessonDetailPage() {
     fetchDetails();
   }, [params.id, currentUserId, isPending]);
 
-  
-  // Fetch similar lessons after main lesson is loaded
   useEffect(() => {
     if (!params?.id) return;
     const fetchSimilar = async () => {
@@ -119,7 +104,6 @@ export default function PublicLessonDetailPage() {
     fetchSimilar();
   }, [params.id]);
 
-  // Toggle like on current lesson
   const handleLike = async () => {
     if (!currentUserId) return router.push('/signin');
     try {
@@ -139,7 +123,6 @@ export default function PublicLessonDetailPage() {
     }
   };
 
-  // Toggle favorite on current lesson
   const handleFavorite = async () => {
     if (!currentUserId) return toast.error('Please login to save to favorites');
     try {
@@ -160,7 +143,6 @@ export default function PublicLessonDetailPage() {
     }
   };
 
-  // Post a new comment on the current lesson
   const handlePostComment = async () => {
     if (!newComment.trim()) return;
     try {
@@ -178,7 +160,6 @@ export default function PublicLessonDetailPage() {
     }
   };
 
-  // Submit a report for inappropriate content
   const handleReport = async (selectedReason, details) => {
     if (!session?.user) return toast.error('Please login to report');
 
@@ -224,7 +205,6 @@ export default function PublicLessonDetailPage() {
     >
       <Toaster position="bottom-right" />
       <div className="max-w-7xl mx-auto px-6 pt-12">
-        {/* Navigation header with back button and category/tone badges */}
         <div className="flex items-center justify-between mb-12">
           <button
             onClick={() => router.back()}
@@ -248,7 +228,6 @@ export default function PublicLessonDetailPage() {
               {lesson.title}
             </h1>
 
-            {/* Featured image section */}
             <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/5">
               <img
                 src={lesson.image}
@@ -257,7 +236,6 @@ export default function PublicLessonDetailPage() {
               />
             </div>
 
-            {/* likes, saves, views */}
             <div className="grid grid-cols-3 bg-[#0F0E0C] border border-[#1A1612] p-8 rounded-xl shadow-inner group">
               <div className="flex flex-col items-center border-r border-[#1A1612]">
                 <FiHeart
@@ -296,7 +274,6 @@ export default function PublicLessonDetailPage() {
               </div>
             </div>
 
-            {/* Action buttons: like, save, share, report */}
             <div className="flex flex-wrap items-center justify-between border-y border-[#1A1612] py-8">
               <div className="flex items-center gap-10">
                 <button
@@ -328,7 +305,6 @@ export default function PublicLessonDetailPage() {
                   <span>{isFavorited ? 'Saved' : 'Save'}</span>
                 </button>
 
-                {/*  Social Share Implementation by react-share */}
                 <div className="relative">
                   <button
                     onClick={() => setShowShareOptions(!showShareOptions)}
@@ -353,7 +329,6 @@ export default function PublicLessonDetailPage() {
                         exit={{ opacity: 0, y: 15, scale: 0.9 }}
                         className="absolute bottom-full left-0 mb-6 bg-[#0F0E0C] border border-[#1A1612] p-5 rounded-[24px] shadow-2xl flex items-center gap-6 z-50 min-w-max"
                       >
-                        {/* Facebook */}
                         <FacebookShareButton
                           url={shareUrl}
                           quote={lesson?.title}
@@ -365,7 +340,6 @@ export default function PublicLessonDetailPage() {
                           />
                         </FacebookShareButton>
 
-                        {/* twitter link */}
                         <XShareButton url={shareUrl} title={lesson?.title}>
                           <XIcon
                             size={38}
@@ -374,7 +348,6 @@ export default function PublicLessonDetailPage() {
                           />
                         </XShareButton>
 
-                        {/* LinkedIn */}
                         <LinkedinShareButton
                           url={shareUrl}
                           title={lesson?.title}
@@ -387,7 +360,6 @@ export default function PublicLessonDetailPage() {
                           />
                         </LinkedinShareButton>
 
-                        {/* Direct Copy Link  */}
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(shareUrl);
@@ -412,12 +384,10 @@ export default function PublicLessonDetailPage() {
               </button>
             </div>
 
-            {/* Main lesson description */}
             <div className="prose prose-invert max-w-none text-xl leading-[1.8] font-serif text-[#BAB0A3] space-y-8 first-letter:text-8xl first-letter:text-white first-letter:mr-4 first-letter:float-left first-letter:leading-none">
               {lesson.description}
             </div>
 
-            {/* Comment section */}
             <div className="space-y-16 mt-20">
               <h3 className="text-4xl font-serif text-white">
                 Comments ({comments.length})
@@ -454,7 +424,6 @@ export default function PublicLessonDetailPage() {
                 </div>
               )}
 
-              {/* List of existing comments */}
               <div className="space-y-12">
                 {comments.map((c, i) => (
                   <div
@@ -480,7 +449,6 @@ export default function PublicLessonDetailPage() {
               </div>
             </div>
 
-            {/* Similar and recommended lessons section (max 6 cards) */}
             {similarLessons.length > 0 && (
               <div className="mt-24 pt-16 border-t border-[#1A1612]">
                 <div className="mb-10">
@@ -549,14 +517,17 @@ export default function PublicLessonDetailPage() {
                           </h4>
                           <div className="mt-4 pt-4 border-t border-[#1A1612] flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <img
-                                src={
-                                  similar.author?.image ||
-                                  'https://via.placeholder.com/150'
-                                }
-                                className="w-5 h-5 rounded-full grayscale group-hover:grayscale-0 transition-all"
-                                alt="author"
-                              />
+                              {similar.author?.image ? (
+                                <img
+                                  src={similar.author.image}
+                                  className="w-5 h-5 rounded-full grayscale group-hover:grayscale-0 transition-all"
+                                  alt="author"
+                                />
+                              ) : (
+                                <div className="w-5 h-5 rounded-full bg-[#1A1612] flex items-center justify-center text-[8px] font-mono text-[#E5A93C] border border-white/5 uppercase">
+                                  {similar.author?.name?.slice(0, 2) || '??'}
+                                </div>
+                              )}
                               <span className="text-[9px] text-white uppercase tracking-tighter font-mono">
                                 {similar.author?.name?.split(' ')[0]}
                               </span>
@@ -574,16 +545,20 @@ export default function PublicLessonDetailPage() {
             )}
           </div>
 
-          {/* Sidebar: author info and lesson metadata */}
           <aside className="lg:col-span-4 space-y-16">
             <div className="bg-[#0F0E0C] border border-[#1A1612] p-10 rounded-2xl shadow-xl sticky top-28">
-              {/* Author profile card */}
               <div className="text-center mb-8">
-                <img
-                  src={lesson.author?.image}
-                  className="w-32 h-32 rounded-full mx-auto object-cover border-2 border-[#1A1612] shadow-2xl grayscale hover:grayscale-0 transition-all duration-700"
-                  alt="Creator"
-                />
+                {lesson.author?.image ? (
+                  <img
+                    src={lesson.author.image}
+                    className="w-32 h-32 rounded-full mx-auto object-cover border-2 border-[#1A1612] shadow-2xl grayscale hover:grayscale-0 transition-all duration-700"
+                    alt="Creator"
+                  />
+                ) : (
+                  <div className="w-32 h-32 rounded-full mx-auto bg-[#1A1612] flex items-center justify-center border-2 border-[#E5A93C]/20 shadow-2xl text-3xl font-serif text-[#E5A93C] uppercase">
+                    {lesson.author?.name?.slice(0, 2) || '??'}
+                  </div>
+                )}
                 <h4 className="text-white font-bold text-2xl mt-4">
                   {lesson.author?.name}
                 </h4>
@@ -592,7 +567,6 @@ export default function PublicLessonDetailPage() {
                 </p>
               </div>
 
-              {/* Author stats: total lessons and impact score */}
               <div className="grid grid-cols-2 gap-6 border-y border-[#1A1612] py-8 mb-8 text-center text-white">
                 <div>
                   <p className="font-bold text-2xl">
@@ -610,7 +584,6 @@ export default function PublicLessonDetailPage() {
                 </div>
               </div>
 
-              {/* Link to full author profile page */}
               <Link
                 href={`/author-profile/${lesson.author?.userId}`}
                 className="block w-full border border-blue-500/30 text-blue-400 py-5 text-[11px] font-bold uppercase tracking-[0.2em] text-center hover:bg-blue-600 hover:text-white transition-all shadow-sm"
@@ -618,7 +591,6 @@ export default function PublicLessonDetailPage() {
                 View Contributor Profile
               </Link>
 
-              {/* Internal metadata / technical records */}
               <div className="mt-16 space-y-6 pt-16 border-t border-[#1A1612] text-[11px] font-mono tracking-tighter">
                 <h4 className="text-[11px] text-[#5C544A] font-mono uppercase tracking-[0.4em] mb-6 flex items-center gap-3">
                   <FiInfo /> Internal Records
@@ -655,7 +627,6 @@ export default function PublicLessonDetailPage() {
         </div>
       </div>
 
-      {/* Report modal for flagging inappropriate content */}
       <AnimatePresence>
         {showReportModal && (
           <ReportModal

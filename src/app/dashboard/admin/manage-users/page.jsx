@@ -2,6 +2,7 @@
 import { authClient } from '@/lib/auth-client';
 import { api } from '@/lib/reusableApi';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
@@ -123,6 +124,7 @@ const ManageUsersByAdminPage = () => {
   return (
     <div className="p-4 md:p-8 lg:p-12 bg-[#0a0a0a] min-h-screen text-white font-sans">
       <Toaster position="top-right" />
+      {/* promote admin modal */}
       <ConfirmationModal
         isOpen={modal.isOpen}
         onClose={() => setModal({ isOpen: false, type: '', user: null })}
@@ -135,8 +137,10 @@ const ManageUsersByAdminPage = () => {
         }
       />
 
+      {/* main data */}
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 border-b border-gray-800 pb-8">
+          {/* header */}
           <div>
             <h2 className="text-2xl md:text-3xl font-black text-[#d4af37] flex items-center gap-3 uppercase tracking-tighter">
               <FaUsersCog className="text-white" /> User Management
@@ -146,6 +150,7 @@ const ManageUsersByAdminPage = () => {
             </p>
           </div>
 
+          {/* search */}
           <div className="relative w-full md:w-96">
             <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" />
             <input
@@ -161,6 +166,7 @@ const ManageUsersByAdminPage = () => {
         {/* Table Layout */}
         <div className="hidden lg:block bg-[#111] border border-white/5 rounded-2xl overflow-hidden">
           <table className="w-full text-left">
+            {/* table headers */}
             <thead className="bg-black/50 text-[10px] uppercase tracking-widest text-gray-500 border-b border-gray-800">
               <tr>
                 <th className="px-8 py-5">User Identity</th>
@@ -170,44 +176,55 @@ const ManageUsersByAdminPage = () => {
                 <th className="px-8 py-5 text-right">Actions</th>
               </tr>
             </thead>
+
+            {/* table */}
             <tbody className="divide-y divide-gray-900">
               {filteredUsers.map(user => (
                 <tr
                   key={user._id}
                   className="hover:bg-white/[0.02] transition-colors"
                 >
+                  {/* user info */}
                   <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center bg-black overflow-hidden shrink-0">
-                        {user.image || user.photoURL ? (
-                          <Image
-                            width={30}
-                            height={30}
-                            src={user.image || user.photoURL}
-                            className="w-full h-full object-cover"
-                            alt="user"
-                          />
-                        ) : (
-                          <span className="text-[10px] font-black text-[#d4af37]">
-                            {getInitials(user.name)}
-                          </span>
-                        )}
+                    <Link href={`/author-profile/${user._id}`}>
+                      <div className="flex items-center gap-4">
+                        {/* image */}
+                        <div className="w-10 h-10 rounded-full border hover:border-amber-500 border-gray-700 flex items-center justify-center bg-black overflow-hidden shrink-0">
+                          {user.image || user.photoURL ? (
+                            <Image
+                              width={30}
+                              height={30}
+                              src={user.image || user.photoURL}
+                              className="w-full h-full object-cover"
+                              alt="user"
+                            />
+                          ) : (
+                            <span className="text-[10px] font-black text-[#d4af37]">
+                              {getInitials(user.name)}
+                            </span>
+                          )}
+                        </div>
+                        {/* name */}
+                        <div>
+                          <p className="text-sm font-bold text-gray-200 hover:text-amber-500 uppercase">
+                            {user.name}
+                          </p>
+                          {user.isPremium && (
+                            <span className="text-[8px] text-[#d4af37] font-black uppercase flex items-center gap-1">
+                              <FaCrown size={8} /> Premium
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-200 uppercase">
-                          {user.name}
-                        </p>
-                        {user.isPremium && (
-                          <span className="text-[8px] text-[#d4af37] font-black uppercase flex items-center gap-1">
-                            <FaCrown size={8} /> Premium
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                    </Link>
                   </td>
+
+                  {/* user email */}
                   <td className="px-8 py-6 text-xs text-gray-500 font-mono italic">
                     {user.email}
                   </td>
+
+                  {/* user role */}
                   <td className="px-8 py-6">
                     <span
                       className={`text-[9px] font-black px-3 py-1 rounded-full border ${user.role === 'admin' ? 'border-[#d4af37] text-[#d4af37]' : 'border-gray-800 text-gray-500'}`}
@@ -215,9 +232,13 @@ const ManageUsersByAdminPage = () => {
                       {user.role}
                     </span>
                   </td>
+
+                  {/* user totallesson */}
                   <td className="px-8 py-6 text-center text-[#d4af37] font-black font-mono text-lg">
                     {user.totalLessons || 0}
                   </td>
+
+                  {/* admin action buttons(set admin, delete user) */}
                   <td className="px-8 py-6 text-right">
                     <div className="flex items-center justify-end gap-3">
                       {user.role !== 'admin' && (
@@ -227,7 +248,7 @@ const ManageUsersByAdminPage = () => {
                           }
                           className="text-[9px] font-black uppercase border border-gray-700 px-4 py-2 hover:bg-[#d4af37] hover:text-black transition-all"
                         >
-                          Promote
+                          Set Admin
                         </button>
                       )}
                       <button
@@ -254,6 +275,7 @@ const ManageUsersByAdminPage = () => {
               key={user._id}
               className="bg-[#111] p-6 rounded-2xl border border-white/5"
             >
+              {/* user info */}
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-full border border-gray-700 flex items-center justify-center">
                   {user.image ? (
@@ -279,6 +301,8 @@ const ManageUsersByAdminPage = () => {
                   </p>
                 </div>
               </div>
+
+              {/* totallesson and action buttons */}
               <div className="flex justify-between items-center pt-4 border-t border-gray-800">
                 <span className="text-xl font-mono font-black text-[#d4af37]">
                   {user.totalLessons || 0}
@@ -310,6 +334,6 @@ const ManageUsersByAdminPage = () => {
       </div>
     </div>
   );
-};;;;
+};
 
 export default ManageUsersByAdminPage;

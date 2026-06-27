@@ -31,6 +31,7 @@ const AdminDashboardHome = () => {
   });
 
   const { data: session, isPending: authLoading } = authClient.useSession();
+  console.log('session', session);
   const router = useRouter();
 
   const getInitials = name => {
@@ -219,25 +220,31 @@ const AdminDashboardHome = () => {
                   className="flex items-center justify-between min-w-0"
                 >
                   <div className="flex items-center gap-3 truncate">
-                    <div className="w-9 h-9 rounded-full bg-gray-800 border border-white/10 flex items-center justify-center shrink-0">
-                      {user.image ? (
-                        <Image
-                          alt="User Image"
-                          width={30}
-                          height={30}
-                          src={user.image}
-                          className="w-full h-full rounded-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-[10px] font-black">
-                          {getInitials(user.name)}
-                        </span>
-                      )}
+                    <div className="w-9 h-9 rounded-full bg-gray-800 border-white/10 flex items-center justify-center shrink-0 overflow-hidden hover:border-amber-500 border-0 hover:border-2">
+                      {/* এখানে session?.user?.id এর বদলে user._id হবে */}
+                      <Link href={`/author-profile/${user._id}`}>
+                        {user?.image ? (
+                          <Image
+                            alt="User Image"
+                            width={30}
+                            height={30}
+                            src={user?.image}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-[10px] font-black text-gray-400">
+                            {user?.name.slice(0, 2)}
+                          </span>
+                        )}
+                      </Link>
                     </div>
                     <div className="truncate">
-                      <p className="text-xs font-bold text-white truncate">
-                        {user.name}
-                      </p>
+                      {/* নামকেও ক্লিকেবল করার জন্য Link ব্যবহার করা ভালো */}
+                      <Link href={`/author-profile/${user._id}`}>
+                        <p className="text-xs font-bold text-white truncate hover:text-[#d4af37] transition-colors">
+                          {user.name}
+                        </p>
+                      </Link>
                       <p className="text-[9px] text-[#d4af37] font-black uppercase">
                         {user.totalLessons} Lessons
                       </p>
@@ -249,7 +256,7 @@ const AdminDashboardHome = () => {
             </div>
           </div>
 
-          {/* Reported Flags (Quick View) */}
+          {/* Reported Flags  */}
           <div className="bg-[#111] p-6 rounded-3xl border border-red-900/20">
             <h3 className="text-red-500 font-bold text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2">
               <FiAlertTriangle /> Critical Flags
@@ -261,7 +268,7 @@ const AdminDashboardHome = () => {
                   className="p-3 bg-black/40 rounded-xl text-[10px] border border-white/5"
                 >
                   <p className="text-gray-300 font-bold truncate italic">
-                    "{r.lessonTitle || 'System Flag'}"
+                    {r.lessonTitle || 'System Flag'}
                   </p>
                   <p className="text-red-400 mt-1 uppercase font-black tracking-tighter">
                     Reason: {r.reason}
