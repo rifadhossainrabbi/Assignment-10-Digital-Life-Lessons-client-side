@@ -5,21 +5,13 @@ import { mongodbAdapter } from 'better-auth/adapters/mongodb';
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.AUTH_DB_NAME;
 
-if (!uri) {
-  throw new Error('Please add MONGODB_URI to your .env file');
-}
-
-// কানেকশন লিক বন্ধ করতে গ্লোবাল ভেরিয়েবল লজিক
 let client;
-
 if (process.env.NODE_ENV === 'development') {
-  // ডেভেলপমেন্ট মোডে গ্লোবাল ভেরিয়েবল ব্যবহার করা হবে
   if (!global._mongoClient) {
     global._mongoClient = new MongoClient(uri);
   }
   client = global._mongoClient;
 } else {
-  // প্রোডাকশনে নতুন ক্লায়েন্ট তৈরি হবে
   client = new MongoClient(uri);
 }
 
@@ -27,7 +19,7 @@ const db = client.db(dbName);
 
 export const auth = betterAuth({
   database: mongodbAdapter(db, {
-    client, // ট্রানজ্যাকশন এনাবল রাখার জন্য
+    client,
   }),
   emailAndPassword: {
     enabled: true,
@@ -38,13 +30,31 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     },
   },
+  // ১. additionalFields এর সিনট্যাক্স আপডেট করা হয়েছে
   user: {
     additionalFields: {
       role: {
-        default: 'user',
+        type: 'string',
+        defaultValue: 'user',
       },
       plan: {
-        default: 'free',
+        type: 'string',
+        defaultValue: 'free',
+      },
+    },
+  },
+
+  // user jeivabei login or sign up koruk na keno role r plan set hobe jodi na thkae
+  databaseHooks: {
+    user: {
+      create: {
+        before: async user => {
+          return {
+            ...user,
+            role: user.role || 'user',
+            plan: user.plan || 'free',
+          };
+        },
       },
     },
   },
