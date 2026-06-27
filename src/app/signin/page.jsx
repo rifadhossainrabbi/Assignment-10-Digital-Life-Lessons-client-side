@@ -7,9 +7,11 @@ import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
 import toast, { Toaster } from 'react-hot-toast';
 import { Button } from '@heroui/react';
+import { useSearchParams } from 'next/navigation';
 
 const LogInPage = () => {
-  // const router = useRouter();
+   const searchParams = useSearchParams();
+   const callbackURL = searchParams.get('callbackURL') || '/';
   const {
     register,
     handleSubmit,
@@ -40,7 +42,7 @@ const LogInPage = () => {
   const handleGoogleSignIn = async () => {
     await authClient.signIn.social({
       provider: 'google',
-      callbackURL: '/',
+      callbackURL: callbackURL,
     });
   };
 

@@ -21,7 +21,8 @@ const request = async (method, endpoint, body) => {
   // error handling
   if (res.status === 401) {
     if (typeof window !== 'undefined') {
-      window.location.href = '/unauthorized';
+      const currentPath = window.location.pathname;
+      window.location.href = `/signin?callbackURL=${currentPath}`;
     }
     return;
   }

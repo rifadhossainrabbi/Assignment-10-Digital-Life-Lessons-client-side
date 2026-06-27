@@ -54,7 +54,9 @@ export default function PublicLessonDetailPage() {
 
   // Requirement: State for the share menu
   const [showShareOptions, setShowShareOptions] = useState(false);
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+  // bortoman location ta  url pathay dawa hocce share korar jonno
+  const shareUrl = `${process.env.NEXT_PUBLIC_SERVER_URL}/public-lessons/${params.id}`;
 
   const currentUserId = useMemo(() => session?.user?.id || null, [session]);
 
@@ -84,7 +86,6 @@ export default function PublicLessonDetailPage() {
     const fetchDetails = async () => {
       try {
         setLoading(true);
-        // Using api.get - Automatically handles JSON parsing and Base URL
         const data = await api.get(
           `/lessons/${params.id}?userId=${currentUserId || ''}`,
         );
