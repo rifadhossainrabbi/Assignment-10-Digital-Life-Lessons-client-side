@@ -45,17 +45,17 @@ export const auth = betterAuth({
   },
 
   // user jeivabei login or sign up koruk na keno role r plan set hobe jodi na thkae
-  databaseHooks: {
-    user: {
-      create: {
-        before: async user => {
-          return {
-            ...user,
-            role: user.role || 'user',
-            plan: user.plan || 'free',
-          };
-        },
-      },
-    },
-  },
+  // databaseHooks: {
+  //   user: {
+  //     create: {
+  //       before: async user => {
+  //         return {
+  //           ...user,
+  //           role: user.role || 'user',
+  //           plan: user.plan || 'free',
+  //         };
+  //       },
+  //     },
+  //   },
+  // },
 });

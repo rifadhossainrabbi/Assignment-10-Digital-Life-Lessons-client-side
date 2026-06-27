@@ -3,9 +3,12 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle2, ArrowRight, Mail } from 'lucide-react';
 import { api } from '@/lib/reusableApi';
+import { getUserToken } from '@/lib/core/session';
 
 export default async function Success({ searchParams }) {
   const { session_id } = await searchParams;
+
+  const token = await getUserToken();
 
   if (!session_id) {
     throw new Error('Please provide a valid session_id');
@@ -18,6 +21,7 @@ export default async function Success({ searchParams }) {
 
   const { status, customer_details } = session;
   const customerEmail = customer_details?.email;
+  console.log('customerEmail', customerEmail);
 
   if (status === 'open') {
     return redirect('/');
@@ -26,7 +30,11 @@ export default async function Success({ searchParams }) {
   if (status === 'complete') {
     //plan upadate api
     try {
-      await api.patch('/users/plan-update', { email: customerEmail });
+      await api.patch(
+        '/users/plan-update',
+        { email: customerEmail },
+        { Authorization: `Bearer ${token}` },
+      );
     } catch (err) {
       console.error('API Plan Update Error:', err.message);
     }

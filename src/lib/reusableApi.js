@@ -2,12 +2,18 @@ import { authClient } from './auth-client';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
-const request = async (method, endpoint, body) => {
-  const headers = { 'Content-Type': 'application/json' };
+const request = async (method, endpoint, body, customHeaders = {}) => {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...customHeaders,
+  };
 
-  const session = await authClient.getSession();
-  const token = session?.data?.session?.token;
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  // customHeaders na thakle eita pabe
+  if (!headers['Authorization']) {
+    const session = await authClient.getSession();
+    const token = session?.data?.session?.token;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  }
 
   // fetch request
   const res = await fetch(`${BASE_URL}${endpoint}`, {
@@ -43,7 +49,7 @@ const request = async (method, endpoint, body) => {
 // reusable api object
 export const api = {
   get: url => request('GET', url),
-  post: (url, data) => request('POST', url, data),
-  patch: (url, data) => request('PATCH', url, data),
-  delete: url => request('DELETE', url),
+  post: (url, data, headers) => request('POST', url, data, headers),
+  patch: (url, data, headers) => request('PATCH', url, data, headers),
+  delete: (url, headers) => request('DELETE', url, null, headers),
 };
