@@ -14,12 +14,27 @@ import {
   FiUser,
   FiSend,
   FiTag,
+  FiCopy,
 } from 'react-icons/fi';
-import { toast } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
 import Link from 'next/link';
 import { authClient } from '@/lib/auth-client';
 import ReportModal from '@/components/ReportModal';
 import { api } from '@/lib/reusableApi';
+
+// REQUIREMENT: Professional Social Sharing Components
+import {
+  FacebookShareButton,
+  LinkedinShareButton,
+  XShareButton,
+  WhatsappShareButton,
+  EmailShareButton,
+  FacebookIcon,
+  XIcon,
+  LinkedinIcon,
+  WhatsappIcon,
+  EmailIcon,
+} from 'react-share';
 
 export default function PublicLessonDetailPage() {
   const params = useParams();
@@ -37,6 +52,10 @@ export default function PublicLessonDetailPage() {
   const [reportReason, setReportReason] = useState('Inappropriate Content');
   const [similarLessons, setSimilarLessons] = useState([]);
 
+  // Requirement: State for the share menu
+  const [showShareOptions, setShowShareOptions] = useState(false);
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+
   const currentUserId = useMemo(() => session?.user?.id || null, [session]);
 
   // Calculate reading time based on word count
@@ -46,7 +65,7 @@ export default function PublicLessonDetailPage() {
     return Math.ceil(words / 200);
   }, [lesson]);
 
-  // Static random view count as per requirement
+  // Static random view count 
   const staticViews = useMemo(
     () => Math.floor(Math.random() * 8000) + 1500,
     [],
@@ -83,6 +102,7 @@ export default function PublicLessonDetailPage() {
     fetchDetails();
   }, [params.id, currentUserId, isPending]);
 
+  
   // Fetch similar lessons after main lesson is loaded
   useEffect(() => {
     if (!params?.id) return;
@@ -134,7 +154,7 @@ export default function PublicLessonDetailPage() {
       }));
       toast.success(data.message);
     } catch (err) {
-      toast.error(err.message || 'Save action failed');
+      toast.error('Save action failed');
     }
   };
 
@@ -176,6 +196,7 @@ export default function PublicLessonDetailPage() {
       toast.error(err.message || 'Failed to submit report');
     }
   };
+
   if (loading)
     return (
       <div className="min-h-screen bg-[#0A0908] flex flex-col items-center justify-center space-y-4">
@@ -199,6 +220,7 @@ export default function PublicLessonDetailPage() {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-[#0A0908] text-[#BAB0A3] pb-24"
     >
+      <Toaster position="bottom-right" />
       <div className="max-w-7xl mx-auto px-6 pt-12">
         {/* Navigation header with back button and category/tone badges */}
         <div className="flex items-center justify-between mb-12">
@@ -233,7 +255,7 @@ export default function PublicLessonDetailPage() {
               />
             </div>
 
-            {/* Engagement statistics: likes, saves, views */}
+            {/* likes, saves, views */}
             <div className="grid grid-cols-3 bg-[#0F0E0C] border border-[#1A1612] p-8 rounded-xl shadow-inner group">
               <div className="flex flex-col items-center border-r border-[#1A1612]">
                 <FiHeart
@@ -303,15 +325,82 @@ export default function PublicLessonDetailPage() {
                   />
                   <span>{isFavorited ? 'Saved' : 'Save'}</span>
                 </button>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    toast.success('Link copied to clipboard');
-                  }}
-                  className="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] hover:text-white transition-all"
-                >
-                  <FiShare2 size={20} /> Share
-                </button>
+
+                {/*  Social Share Implementation by react-share */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowShareOptions(!showShareOptions)}
+                    className="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] hover:text-white transition-all group"
+                  >
+                    <FiShare2
+                      size={20}
+                      className={
+                        showShareOptions
+                          ? 'text-[#E5A93C]'
+                          : 'group-hover:scale-110'
+                      }
+                    />
+                    <span>Share</span>
+                  </button>
+
+                  <AnimatePresence>
+                    {showShareOptions && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 15, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 15, scale: 0.9 }}
+                        className="absolute bottom-full left-0 mb-6 bg-[#0F0E0C] border border-[#1A1612] p-5 rounded-[24px] shadow-2xl flex items-center gap-6 z-50 min-w-max"
+                      >
+                        {/* Facebook */}
+                        <FacebookShareButton
+                          url={shareUrl}
+                          quote={lesson?.title}
+                        >
+                          <FacebookIcon
+                            size={38}
+                            round
+                            className="hover:scale-110 transition-transform shadow-lg"
+                          />
+                        </FacebookShareButton>
+
+                        {/* twitter link */}
+                        <XShareButton url={shareUrl} title={lesson?.title}>
+                          <XIcon
+                            size={38}
+                            round
+                            className="hover:scale-110 transition-transform shadow-lg"
+                          />
+                        </XShareButton>
+
+                        {/* LinkedIn */}
+                        <LinkedinShareButton
+                          url={shareUrl}
+                          title={lesson?.title}
+                          source="Digital Life Lessons"
+                        >
+                          <LinkedinIcon
+                            size={38}
+                            round
+                            className="hover:scale-110 transition-transform shadow-lg"
+                          />
+                        </LinkedinShareButton>
+
+                        {/* Direct Copy Link  */}
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(shareUrl);
+                            toast.success('Archive URL copied');
+                            setShowShareOptions(false);
+                          }}
+                          className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#BAB0A3] hover:text-[#E5A93C] hover:bg-white/10 transition-all"
+                          title="Copy Link"
+                        >
+                          <FiCopy size={18} />
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
               <button
                 onClick={() => setShowReportModal(true)}
@@ -321,19 +410,15 @@ export default function PublicLessonDetailPage() {
               </button>
             </div>
 
-            {/* Main lesson content body with drop cap first letter */}
+            {/* Main lesson description */}
             <div className="prose prose-invert max-w-none text-xl leading-[1.8] font-serif text-[#BAB0A3] space-y-8 first-letter:text-8xl first-letter:text-white first-letter:mr-4 first-letter:float-left first-letter:leading-none">
               {lesson.description}
-              {/* <blockquote className="border-l-4 border-[#E5A93C] pl-8 py-6 my-16 bg-[#1A1612]/30 italic text-white text-2xl font-serif">
-                "Wisdom is the reward you get for a lifetime of listening when
-                you would have rather talked."
-              </blockquote> */}
             </div>
 
-            {/* Comment / reflection section */}
+            {/* Comment section */}
             <div className="space-y-16 mt-20">
               <h3 className="text-4xl font-serif text-white">
-                Reflections ({comments.length})
+                Comments ({comments.length})
               </h3>
               {currentUserId ? (
                 <div className="flex gap-6 items-start">
@@ -351,7 +436,7 @@ export default function PublicLessonDetailPage() {
                       onClick={handlePostComment}
                       className="bg-blue-600 text-white px-10 py-4 uppercase text-[10px] font-bold tracking-[0.2em] hover:bg-blue-700 flex items-center gap-3 transition-all"
                     >
-                      <FiSend /> Post Reflection
+                      <FiSend /> Post Comment
                     </button>
                   </div>
                 </div>
@@ -381,7 +466,7 @@ export default function PublicLessonDetailPage() {
                       <div className="flex justify-between items-center mb-4">
                         <h5 className="text-white font-bold">{c.userName}</h5>
                         <span className="text-[10px] font-mono text-[#5C544A] uppercase tracking-tighter">
-                          {new Date(c.createdAt).toDateString()}
+                          {new Date(c.createdAt).toDateString('en-GB')}
                         </span>
                       </div>
                       <p className="text-lg text-[#BAB0A3] leading-relaxed font-serif italic bg-[#1A1612]/10 p-6 rounded-sm">
@@ -407,7 +492,6 @@ export default function PublicLessonDetailPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {similarLessons.map(similar => {
-                    // Lock premium lessons for non-premium users
                     const isLocked =
                       similar.accessLevel === 'Premium' &&
                       session?.user?.plan !== 'premium';
@@ -425,7 +509,6 @@ export default function PublicLessonDetailPage() {
                         }}
                         className="bg-[#0F0E0C] border border-[#1A1612] rounded-2xl overflow-hidden group cursor-pointer hover:border-[#E5A93C]/30 transition-all duration-500 shadow-xl"
                       >
-                        {/* Card thumbnail */}
                         <div className="relative h-40 overflow-hidden">
                           <img
                             src={
@@ -439,7 +522,6 @@ export default function PublicLessonDetailPage() {
                                 : 'blur-2xl grayscale opacity-40'
                             }`}
                           />
-                          {/* Access level badge */}
                           <div className="absolute top-3 left-3">
                             <span
                               className={`text-[9px] font-black uppercase px-2 py-1 rounded shadow-lg ${
@@ -453,7 +535,6 @@ export default function PublicLessonDetailPage() {
                           </div>
                         </div>
 
-                        {/* Card content */}
                         <div className="p-5">
                           <div className="flex items-center gap-2 text-[9px] font-mono text-[#8C8275] uppercase tracking-wider mb-2">
                             <FiTag className="text-[#E5A93C]" />{' '}
@@ -543,13 +624,13 @@ export default function PublicLessonDetailPage() {
                 <div className="flex justify-between items-center mb-4">
                   <span>PUBLISHED DATE</span>
                   <span className="text-white">
-                    {new Date(lesson.createdAt).toLocaleDateString()}
+                    {new Date(lesson.createdAt).toLocaleDateString('en-GB')}
                   </span>
                 </div>
                 <div className="flex justify-between items-center mb-4">
                   <span>Update DATE</span>
                   <span className="text-white">
-                    {new Date(lesson.updatedAt).toLocaleDateString()}
+                    {new Date(lesson.updatedAt).toLocaleDateString('en-GB')}
                   </span>
                 </div>
                 <div className="flex justify-between items-center mb-4">
@@ -574,14 +655,16 @@ export default function PublicLessonDetailPage() {
 
       {/* Report modal for flagging inappropriate content */}
       <AnimatePresence>
-        <ReportModal
-          isOpen={showReportModal}
-          onClose={() => setShowReportModal(false)}
-          onSubmit={handleReport}
-          reason={reportReason}
-          setReason={setReportReason}
-          lessonId={lesson._id}
-        />
+        {showReportModal && (
+          <ReportModal
+            isOpen={showReportModal}
+            onClose={() => setShowReportModal(false)}
+            onSubmit={handleReport}
+            reason={reportReason}
+            setReason={setReportReason}
+            lessonId={lesson._id}
+          />
+        )}
       </AnimatePresence>
     </motion.div>
   );
