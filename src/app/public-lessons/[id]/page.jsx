@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiArrowLeft,
@@ -37,6 +37,7 @@ import {
 } from 'react-share';
 
 export default function PublicLessonDetailPage() {
+  const router = useRouter();
   const params = useParams();
   const { data: session, isPending } = authClient.useSession();
 
