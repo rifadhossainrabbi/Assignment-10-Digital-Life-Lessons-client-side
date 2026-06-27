@@ -31,7 +31,9 @@ const LoginForm = () => {
       email: data.email,
       password: data.password,
       rememberMe: true,
-      callbackURL: callbackURL, 
+      role: 'user',
+      plan: 'free',
+      callbackURL: callbackURL,
     });
 
     if (error) {
