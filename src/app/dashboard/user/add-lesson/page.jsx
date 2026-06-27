@@ -16,6 +16,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/reusableApi';
+import Link from 'next/link';
 
 export default function AddLessonPage() {
   const router = useRouter();
@@ -345,39 +346,16 @@ export default function AddLessonPage() {
 
           {/* --- RIGHT COLUMN: VISUALS & TAGS --- */}
           <div className="lg:col-span-5 space-y-8">
-            {/* Image Upload Area */}
             <div
               onClick={() => !previewUrl && fileInputRef.current.click()}
-              className={`bg-[#14110C] border-2 border-dashed rounded-xl h-64 flex flex-col items-center justify-center transition-all overflow-hidden relative ${previewUrl ? 'border-amber-500/40' : 'border-[#231E15] hover:border-amber-500/30 cursor-pointer group'}`}
+              className={`bg-[#14110C] border-2 border-dashed rounded-xl h-64 flex flex-col items-center justify-center transition-all overflow-hidden relative ${previewUrl ? 'border-amber-500/40' : 'border-[#231E15] hover:border-amber-500/30 cursor-pointer'}`}
             >
               {previewUrl ? (
-                <>
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="h-full w-full object-cover brightness-75 hover:brightness-100 transition-all"
-                  />
-                  <button
-                    onClick={e => {
-                      e.stopPropagation();
-                      setSelectedFile(null);
-                      setPreviewUrl('');
-                    }}
-                    className="absolute top-4 right-4 bg-black/80 p-2 rounded-full hover:bg-red-500 transition-all text-white"
-                  >
-                    <IoClose size={18} />
-                  </button>
-                </>
+                <img src={previewUrl} className="h-full w-full object-cover" />
               ) : (
-                <div className="text-center">
-                  <MdCloudUpload
-                    size={40}
-                    className="mx-auto mb-3 text-[#2E281D] group-hover:text-amber-500 transition-colors"
-                  />
-                  <p className="text-[10px] font-bold text-[#9C9485] uppercase tracking-widest">
-                    Select Archive Image
-                  </p>
-                </div>
+                <p className="text-[10px] font-bold text-[#9C9485] uppercase">
+                  Select Image
+                </p>
               )}
               <input
                 type="file"
@@ -394,78 +372,40 @@ export default function AddLessonPage() {
               />
             </div>
 
-            {/* Tag Management System */}
-            <div className="bg-[#14110C] border border-[#231E15] p-6 rounded-xl">
-              <label className="flex items-center gap-2 text-[10px] font-black uppercase text-[#9C9485] mb-4 tracking-widest">
-                <FaTags /> Content Tags
-              </label>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <AnimatePresence>
-                  {tags.map(tag => (
-                    <motion.span
-                      initial={{ scale: 0.8 }}
-                      animate={{ scale: 1 }}
-                      exit={{ scale: 0 }}
-                      key={tag}
-                      className="flex items-center gap-1.5 bg-[#0F0D0A] border border-[#231E15] px-3 py-1.5 rounded text-[10px] text-amber-500 font-bold uppercase tracking-tighter"
-                    >
-                      {tag}{' '}
-                      <IoClose
-                        className="cursor-pointer hover:text-red-500"
-                        onClick={() => handleRemoveTag(tag)}
-                      />
-                    </motion.span>
-                  ))}
-                </AnimatePresence>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newTag}
-                  onChange={e => setNewTag(e.target.value)}
-                  onKeyPress={e =>
-                    e.key === 'Enter' && (e.preventDefault(), handleAddTag())
-                  }
-                  placeholder="New tag..."
-                  className="flex-1 bg-[#0F0D0A] border border-[#231E15] px-4 py-2 rounded text-xs outline-none focus:border-amber-500/30"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddTag}
-                  className="bg-[#231E15] p-2 rounded text-[#9C9485] hover:text-white transition-colors"
-                >
-                  <IoAdd size={20} />
-                </button>
-              </div>
-            </div>
-
-            {/* Action Button: Publish */}
+            {/* ২. গুরুত্বপূর্ণ পরিবর্তন: বাটন সেকশন */}
             <div className="space-y-4 pt-4">
-              <motion.button
-                whileHover={!isLimitReached ? { scale: 1.02 } : {}}
-                whileTap={!isLimitReached ? { scale: 0.98 } : {}}
-                type="submit"
-                disabled={isPublishing || isLimitReached}
-                className={`w-full h-16 rounded-xl font-black uppercase tracking-[0.2em] text-xs transition-all ${isLimitReached ? 'bg-[#1C1812] text-[#2E281D] cursor-not-allowed border border-[#231E15]' : 'bg-[#E5A93C] text-black shadow-2xl hover:bg-white'}`}
-              >
-                {isLimitReached ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <FaTimes /> Capacity Full
-                  </span>
-                ) : isPublishing ? (
-                  'Synchronizing...'
-                ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    Archiving Wisdom <FaCheckCircle />
-                  </span>
-                )}
-              </motion.button>
+              {isLimitReached ? (
+                /* যদি লিমিট শেষ হয়ে যায়, তবে এই "Go to Upgrade" বাটনটি দেখাবে */
+                <Link
+                  href="/pricing"
+                  className="w-full h-16 rounded-xl bg-indigo-600 text-white flex items-center justify-center gap-3 font-black uppercase tracking-[0.2em] text-xs shadow-2xl hover:bg-indigo-500 transition-all border border-indigo-400/30"
+                >
+                  <FaCrown className="text-amber-400 animate-pulse" />
+                  Go to Upgrade to Add More
+                </Link>
+              ) : (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={isPublishing}
+                  className="w-full h-16 rounded-xl bg-[#E5A93C] text-black font-black uppercase tracking-[0.2em] text-xs transition-all shadow-2xl hover:bg-white disabled:opacity-50"
+                >
+                  {isPublishing ? (
+                    'Synchronizing...'
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      Archiving Wisdom <FaCheckCircle />
+                    </span>
+                  )}
+                </motion.button>
+              )}
 
               {isLimitReached && (
                 <div className="flex items-center gap-2 justify-center p-4 bg-red-500/5 border border-red-500/10 rounded-lg">
                   <MdInfoOutline className="text-red-500" size={16} />
                   <p className="text-[10px] text-red-500 font-bold uppercase">
-                    Archive limit (5) reached. Please upgrade.
+                    Free limit (5) reached. Please upgrade to continue.
                   </p>
                 </div>
               )}

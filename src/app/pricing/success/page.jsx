@@ -27,8 +27,6 @@ export default async function Success({ searchParams }) {
     //plan upadate api
     try {
       await api.patch('/users/plan-update', { email: customerEmail });
-
-      console.log('Plan upgrade processed for:', customerEmail);
     } catch (err) {
       console.error('API Plan Update Error:', err.message);
     }
