@@ -33,19 +33,19 @@ const DeleteLessonModal = ({ isOpen, onClose, onConfirm, lessonTitle }) => {
               </h3>
               <p className="text-sm text-[#5C544A] leading-relaxed mb-10">
                 You are about to permanently remove{' '}
-                <span className="text-white">"{lessonTitle}"</span>. This action
+                <span className="text-white">{lessonTitle}</span>. This action
                 cannot be undone.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 w-full">
                 <button
                   onClick={onClose}
-                  className="flex-1 py-4 rounded-xl border border-[#231E15] text-[#5C544A] text-xs font-black uppercase tracking-widest hover:bg-white/5 transition-all"
+                  className="flex-1 hover:cursor-pointer py-4 rounded-xl border border-[#231E15] text-[#5C544A] text-xs font-black uppercase tracking-widest hover:bg-white/5 transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={onConfirm}
-                  className="flex-1 py-4 rounded-xl bg-red-600 text-white text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg"
+                  className="flex-1 hover:cursor-pointer py-4 rounded-xl bg-red-600 text-white text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg"
                 >
                   Erase Forever
                 </button>

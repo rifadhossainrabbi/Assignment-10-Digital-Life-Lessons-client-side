@@ -258,10 +258,14 @@ export default function AddLessonPage() {
                     </option>
                     <option value="Personal Growth">Personal Growth</option>
                     <option value="Career">Career</option>
+                    <option value="Relationships">Relationships</option>
                     <option value="Mindset">Mindset</option>
-                    <option value="Philosophy">Philosophy</option>
+                    <option value="Mistakes">Mistakes </option>
+                    <option value="Learned">Learned </option>
                   </select>
                 </div>
+
+                {/* Emotional tone select option */}
                 <div className="space-y-4">
                   <label className="text-gray-500 text-[10px] uppercase font-black tracking-[0.3em] ml-1">
                     Emotional Tone
@@ -276,8 +280,9 @@ export default function AddLessonPage() {
                       Select Tone
                     </option>
                     <option value="Motivational">Motivational</option>
-                    <option value="Contemplative">Contemplative</option>
+                    <option value="Sad">Sad</option>
                     <option value="Realization">Realization</option>
+                    <option value="Gratitude">Gratitude</option>
                   </select>
                 </div>
               </div>

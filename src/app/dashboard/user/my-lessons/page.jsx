@@ -127,7 +127,7 @@ export default function MyLessonsPage() {
     <div className="min-h-screen bg-[#0F0D0A] text-[#E6DFD3] p-4 md:p-12">
       <Toaster />
 
-      {/* --- NEW EXTERNAL MODAL COMPONENT --- */}
+      {/* Delete modal */}
       <DeleteLessonModal
         isOpen={isDeleteModalOpen}
         onClose={closeDeleteModal}
@@ -150,11 +150,11 @@ export default function MyLessonsPage() {
             href="/dashboard/user/add-lesson"
             className="w-full md:w-auto text-center bg-[#E5A93C] text-black px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all"
           >
-            + New Insight
+            + Add Lesson
           </Link>
         </div>
 
-        {/* --- MOBILE CARD VIEW --- */}
+        {/* mobile design */}
         <div className="grid grid-cols-1 gap-4 lg:hidden">
           {lessons.map(lesson => (
             <div
@@ -163,9 +163,11 @@ export default function MyLessonsPage() {
             >
               <div className="flex justify-between items-start">
                 <div className="space-y-1">
+                  {/* lesson title */}
                   <h4 className="font-serif text-lg text-[#F4EFEA] leading-tight">
                     {lesson.title}
                   </h4>
+                  {/* category */}
                   <span className="text-[9px] bg-white/5 px-2 py-0.5 rounded text-[#5C544A] uppercase font-mono inline-block">
                     {lesson.category}
                   </span>
@@ -173,25 +175,26 @@ export default function MyLessonsPage() {
                 <div className="flex gap-2">
                   <Link
                     href={`/dashboard/user/my-lessons/${lesson._id}`}
-                    className="p-2 bg-white/5 border border-white/5 text-gray-400 rounded-lg"
+                    className="p-2 hover:cursor-pointer bg-white/5 border border-white/5 text-gray-400 rounded-lg"
                   >
                     <FiEdit2 size={14} />
                   </Link>
                   <button
                     onClick={() => openDeleteModal(lesson)}
-                    className="p-2 bg-red-500/10 border border-red-500/10 text-red-500 rounded-lg"
+                    className="p-2 bg-red-500/10 border border-red-500/10 hover:cursor-pointer text-red-500 rounded-lg"
                   >
                     <FiTrash2 size={14} />
                   </button>
                 </div>
               </div>
 
+              {/* visibility and access button */}
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() =>
                     handleToggleVisibility(lesson._id, lesson.visibility)
                   }
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${lesson.visibility === 'Public' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border hover:cursor-pointer transition-all ${lesson.visibility === 'Public' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}
                 >
                   {lesson.visibility === 'Public' ? <FiGlobe /> : <FiLock />}{' '}
                   {lesson.visibility}
@@ -200,7 +203,7 @@ export default function MyLessonsPage() {
                   onClick={() =>
                     handleToggleAccess(lesson._id, lesson.accessLevel)
                   }
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${lesson.accessLevel === 'Premium' ? 'bg-[#E5A93C]/10 text-[#E5A93C] border-[#E5A93C]/20' : 'bg-white/5 text-[#5C544A] border-white/5'}`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border hover:cursor-pointer transition-all ${lesson.accessLevel === 'Premium' ? 'bg-[#E5A93C]/10 text-[#E5A93C] border-[#E5A93C]/20' : 'bg-white/5 text-[#5C544A] border-white/5'}`}
                 >
                   {lesson.accessLevel === 'Premium' && <FiStar />}{' '}
                   {lesson.accessLevel}
