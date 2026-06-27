@@ -16,29 +16,29 @@ export default function AddLessonPage() {
   const router = useRouter();
   const { data: session, isPending: authLoading } = authClient.useSession();
 
-  // --- Form States ---
+  //  Form er data gulo save korar jonno states (Title, Cat, Tone, ityadi)
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [emotionalTone, setEmotionalTone] = useState('');
-  const [accessLevel, setAccessLevel] = useState('Free');
+  const [accessLevel, setAccessLevel] = useState('Free'); // Free ba Premium set korar jonno
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState(['Personal Growth']);
   const [newTag, setNewTag] = useState('');
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState('');
-  const [isPublishing, setIsPublishing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null); // Image file dhorar jonno
+  const [previewUrl, setPreviewUrl] = useState(''); // Image preview dekhannor jonno
+  const [isPublishing, setIsPublishing] = useState(false); // Submit button control korar jonno
 
-  // --- Capacity States ---
-  const [myLessonCount, setMyLessonCount] = useState(0);
-  const fileInputRef = useRef(null);
+  // Capacity check korar states
+  const [myLessonCount, setMyLessonCount] = useState(0); // User koita lesson create korse tar count
+  const fileInputRef = useRef(null); // File input trigger korar jonno ref
 
   const user = session?.user;
-  const isPremiumUser = user?.plan === 'premium'; // Logic: check if premium
-  const freeLimit = 5;
+  const isPremiumUser = user?.plan === 'premium'; // User premium ki na ta check kora
+  const freeLimit = 5; // Free user-er jonno limit set kora
   const isLimitReached =
     !isPremiumUser && myLessonCount >= freeLimit && user?.role !== 'admin';
 
-  // 1. Fetch user's current lesson count for limit validation
+  // User-er koto gulo lesson archive-e ache ta fetch korar hook
   useEffect(() => {
     if (user?.id) {
       const getCount = async () => {
@@ -53,12 +53,14 @@ export default function AddLessonPage() {
     }
   }, [user?.id]);
 
+  // Login na thakle sign-in page-e redirect korar hook 
   useEffect(() => {
     if (!authLoading && !session) {
       router.replace('/signin');
     }
   }, [session, authLoading, router]);
 
+  //  Authentication loading state UI
   if (authLoading)
     return (
       <div className="min-h-screen bg-[#0A0908] flex items-center justify-center font-mono text-[#E5A93C] animate-pulse uppercase tracking-[0.3em]">
@@ -66,14 +68,7 @@ export default function AddLessonPage() {
       </div>
     );
 
-  if (!session?.user)
-    return (
-      <div className="min-h-screen bg-[#0A0908] flex items-center justify-center text-[#BAB0A3] font-mono uppercase tracking-widest">
-        Login required.
-      </div>
-    );
-
-  // 2. Helper Logic
+  // Tag system-e tag add r remove korar logic
   const handleAddTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
       setTags([...tags, newTag.trim()]);
@@ -85,25 +80,30 @@ export default function AddLessonPage() {
     setTags(tags.filter(t => t !== tagToRemove));
   };
 
-  // 4. Submit Logic
+  // Form submit logic: Image upload r Database-e lesson save kora
   const handleSubmit = async e => {
     e.preventDefault();
+
+    // Capacity limit check
     if (isLimitReached) {
-      toast.error('Free capacity reached. Please upgrade.');
+      toast.error('Archive limit reached. Please upgrade to Premium.');
       return;
     }
+
+    // Required field check
     if (!category || !emotionalTone) {
-      toast.error('Specify Category and Tone');
+      toast.error('Category and Emotional Tone are required!');
       return;
     }
 
     setIsPublishing(true);
-    const processToast = toast.loading('Archiving insight...');
+    const processToast = toast.loading('Archiving your wisdom...');
 
     try {
       let finalImageUrl =
         'https://placehold.co/600x400/14110C/E5A93C?text=NO+VISUAL+ARCHIVED';
 
+      // photo thakle ImgBB-te upload korar logic
       if (selectedFile) {
         const formData = new FormData();
         formData.append('image', selectedFile);
@@ -115,6 +115,7 @@ export default function AddLessonPage() {
         if (imgData.success) finalImageUrl = imgData.data.url;
       }
 
+      // Database-e lesson data pathano
       const lessonData = {
         title,
         category,
@@ -133,8 +134,7 @@ export default function AddLessonPage() {
       };
 
       await api.post('/lessons', lessonData);
-
-      toast.success('Wisdom archived!', { id: processToast });
+      toast.success('Wisdom successfully archived!', { id: processToast });
       router.push('/dashboard/user/my-lessons');
     } catch (error) {
       toast.error(error.message || 'Sync failed', { id: processToast });
@@ -147,7 +147,7 @@ export default function AddLessonPage() {
     <div className="min-h-screen bg-[#0A0908] text-[#BAB0A3] p-6 lg:p-12 antialiased">
       <Toaster position="top-center" />
       <div className="max-w-7xl mx-auto">
-        {/* Page Header */}
+        {/* Header Section: Title r Membership Status */}
         <div className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h1 className="text-4xl md:text-5xl font-serif text-white tracking-tight">
@@ -158,7 +158,7 @@ export default function AddLessonPage() {
               Contribution Interface :: Registry 007
             </p>
           </div>
-          {/* Displaying Plan Status Clearly */}
+          {/* User premium naki standard ta eikhane dekha jabe */}
           <div
             className={`px-6 py-2 rounded-full border font-black uppercase text-[10px] tracking-[0.2em] flex items-center gap-3 ${isPremiumUser ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-white/5 border-white/10 text-gray-500'}`}
           >
@@ -172,7 +172,7 @@ export default function AddLessonPage() {
           </div>
         </div>
 
-        {/* --- CAPACITY METER SECTION --- */}
+        {/* Capacity Meter: User koita slot baki ache ta eikhane bar-e dekhabe */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -180,7 +180,7 @@ export default function AddLessonPage() {
         >
           <div className="flex items-center gap-6">
             <div
-              className={`w-16 h-16 rounded-2xl flex items-center justify-center ${isPremiumUser ? 'bg-amber-500/10 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'bg-blue-500/10 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.1)]'}`}
+              className={`w-16 h-16 rounded-2xl flex items-center justify-center ${isPremiumUser ? 'bg-amber-500/10 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]' : 'bg-blue-500/10 text-blue-400'}`}
             >
               {isPremiumUser ? (
                 <FaCrown size={32} />
@@ -191,21 +191,22 @@ export default function AddLessonPage() {
             <div>
               <h3 className="text-xl font-serif text-white tracking-wide">
                 {isPremiumUser
-                  ? 'Premium Archive Slots'
+                  ? 'Unlimited Archive Slots'
                   : 'Journal Storage Level'}
               </h3>
               <p className="text-[11px] text-[#E5A93C] font-mono uppercase tracking-widest mt-1 font-bold">
                 {isPremiumUser
-                  ? 'Unlimited Storage Active'
+                  ? 'Premium Account Active'
                   : `${freeLimit - myLessonCount} free slots remaining`}
               </p>
             </div>
           </div>
+          {/* Progress bar logic - sudhu free user-er jonno */}
           {!isPremiumUser && user?.role !== 'admin' && (
             <div className="w-full md:w-80 bg-black/20 p-5 rounded-2xl border border-white/5">
-              <div className="flex justify-between mb-3 px-1 text-[11px] font-black uppercase tracking-widest">
+              <div className="flex justify-between mb-3 text-[11px] font-black uppercase tracking-widest">
                 <span className="text-gray-500">Storage Density</span>
-                <span className="text-[#E5A93C] font-bold">
+                <span className="text-[#E5A93C]">
                   {Math.round((myLessonCount / freeLimit) * 100)}%
                 </span>
               </div>
@@ -225,12 +226,13 @@ export default function AddLessonPage() {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 lg:grid-cols-12 gap-12"
         >
-          {/* --- LEFT COLUMN: CORE WISDOM --- */}
+          {/* --- Left Column: Main form field gulo (Title, Cat, Tone, Description) --- */}
           <div className="lg:col-span-7 space-y-8">
             <div className="bg-[#0F0E0C] border border-[#1A1612] p-8 md:p-10 rounded-[40px] space-y-10 shadow-2xl">
+              {/* Lesson Title input field */}
               <div className="space-y-4">
                 <label className="text-gray-500 text-[10px] uppercase font-black tracking-[0.3em] ml-1">
-                  Title of Insight
+                  Lesson title
                 </label>
                 <input
                   required
@@ -238,11 +240,12 @@ export default function AddLessonPage() {
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder="Enter a descriptive title..."
-                  className="w-full bg-[#0A0908] border border-[#1A1612] p-5 rounded-2xl outline-none focus:border-[#E5A93C]/40 text-white font-serif text-xl transition-all shadow-inner"
+                  className="w-full bg-[#0A0908] border border-[#1A1612] p-5 rounded-2xl outline-none focus:border-[#E5A93C]/40 text-white font-serif text-xl"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Category select dropdown */}
                 <div className="space-y-4">
                   <label className="text-gray-500 text-[10px] uppercase font-black tracking-[0.3em] ml-1">
                     Category
@@ -251,7 +254,7 @@ export default function AddLessonPage() {
                     required
                     value={category}
                     onChange={e => setCategory(e.target.value)}
-                    className="w-full bg-[#0A0908] border border-[#1A1612] p-5 rounded-2xl outline-none focus:border-[#E5A93C]/40 text-sm text-gray-300 cursor-pointer"
+                    className="w-full bg-[#0A0908] border border-[#1A1612] p-5 rounded-2xl outline-none text-gray-300 cursor-pointer"
                   >
                     <option value="" disabled>
                       Select Category
@@ -260,12 +263,13 @@ export default function AddLessonPage() {
                     <option value="Career">Career</option>
                     <option value="Relationships">Relationships</option>
                     <option value="Mindset">Mindset</option>
-                    <option value="Mistakes">Mistakes </option>
-                    <option value="Learned">Learned </option>
+                    <option value="Mistakes">Mistakes</option>
+                    <option value="Learned">Learned</option>
+                    <option value="Mistakes Learned">Mistakes Learned</option>
                   </select>
                 </div>
 
-                {/* Emotional tone select option */}
+                {/* Emotional Tone select dropdown */}
                 <div className="space-y-4">
                   <label className="text-gray-500 text-[10px] uppercase font-black tracking-[0.3em] ml-1">
                     Emotional Tone
@@ -274,7 +278,7 @@ export default function AddLessonPage() {
                     required
                     value={emotionalTone}
                     onChange={e => setEmotionalTone(e.target.value)}
-                    className="w-full bg-[#0A0908] border border-[#1A1612] p-5 rounded-2xl outline-none focus:border-[#E5A93C]/40 text-sm text-gray-300 cursor-pointer"
+                    className="w-full bg-[#0A0908] border border-[#1A1612] p-5 rounded-2xl outline-none text-gray-300 cursor-pointer"
                   >
                     <option value="" disabled>
                       Select Tone
@@ -287,6 +291,7 @@ export default function AddLessonPage() {
                 </div>
               </div>
 
+              {/* Access Policy: Premium user k click korle block r toast korar logic eikhane */}
               <div className="p-8 bg-[#0A0908] rounded-3xl border border-[#1A1612] space-y-6">
                 <label className="text-gray-500 text-[10px] uppercase font-black tracking-[0.3em] block">
                   Access Policy
@@ -295,7 +300,15 @@ export default function AddLessonPage() {
                   {['Free', 'Premium'].map(level => (
                     <label
                       key={level}
-                      className={`flex items-center gap-4 cursor-pointer group ${level === 'Premium' && !isPremiumUser ? 'opacity-20 cursor-not-allowed' : ''}`}
+                      className={`flex items-center gap-4 cursor-pointer group ${level === 'Premium' && !isPremiumUser ? 'opacity-60' : ''}`}
+                      onClick={() => {
+                        // Jodi free user hoye premium select korte chay
+                        if (level === 'Premium' && !isPremiumUser) {
+                          toast.error(
+                            'Premium archive is for paid members only. Please upgrade!',
+                          );
+                        }
+                      }}
                     >
                       <div
                         className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${accessLevel === level ? 'border-[#E5A93C] bg-[#E5A93C]/10' : 'border-[#1A1612]'}`}
@@ -307,20 +320,25 @@ export default function AddLessonPage() {
                       <input
                         type="radio"
                         className="hidden"
-                        disabled={level === 'Premium' && !isPremiumUser}
                         checked={accessLevel === level}
-                        onChange={() => setAccessLevel(level)}
+                        onChange={() => {
+                          // Sudhu premium user ba free option select kora jabe
+                          if (level === 'Free' || isPremiumUser) {
+                            setAccessLevel(level);
+                          }
+                        }}
                       />
                       <span
-                        className={`text-xs font-bold uppercase tracking-widest transition-colors ${accessLevel === level ? 'text-amber-500' : 'text-[#5C544A] group-hover:text-gray-400'}`}
+                        className={`text-xs font-bold uppercase tracking-widest ${accessLevel === level ? 'text-amber-500' : 'text-[#5C544A]'}`}
                       >
-                        {level === 'Free' ? 'Public' : 'Premium'}
+                        {level === 'Free' ? 'Public (Free)' : 'Premium Archive'}
                       </span>
                     </label>
                   ))}
                 </div>
               </div>
 
+              {/* Main Insight/Description textarea field */}
               <div className="space-y-4">
                 <label className="text-gray-500 text-[10px] uppercase font-black tracking-[0.3em] ml-1">
                   Deep Insight
@@ -331,33 +349,34 @@ export default function AddLessonPage() {
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   placeholder="Pour your soul into the archives..."
-                  className="w-full bg-[#0A0908] border border-[#1A1612] p-8 rounded-[32px] outline-none focus:border-[#E5A93C]/40 text-lg leading-relaxed resize-none font-serif italic text-white shadow-inner"
+                  className="w-full bg-[#0A0908] border border-[#1A1612] p-8 rounded-[32px] outline-none text-lg leading-relaxed font-serif italic text-white resize-none"
                 />
               </div>
             </div>
           </div>
 
-          {/* --- RIGHT COLUMN: VISUALS & TAGS --- */}
+          {/* --- Right Column: Image upload r Tag system section --- */}
           <div className="lg:col-span-5 space-y-10">
+            {/* Image Upload Box: Click korle gallery open hobe */}
             <div
               onClick={() => !previewUrl && fileInputRef.current.click()}
-              className={`bg-[#0F0E0C] border-2 border-dashed rounded-[40px] h-[350px] flex flex-col items-center justify-center transition-all overflow-hidden relative group shadow-2xl ${previewUrl ? 'border-[#E5A93C]/20' : 'border-[#1A1612] hover:border-[#E5A93C]/30 cursor-pointer'}`}
+              className={`bg-[#0F0E0C] border-2 border-dashed rounded-[40px] h-[350px] flex flex-col items-center justify-center transition-all overflow-hidden relative group ${previewUrl ? 'border-[#E5A93C]/20' : 'border-[#1A1612] hover:border-[#E5A93C]/30 cursor-pointer'}`}
             >
               {previewUrl ? (
                 <>
                   <img
                     src={previewUrl}
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
                     alt="Preview"
-                    className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center">
                     <button
                       onClick={e => {
                         e.stopPropagation();
                         setSelectedFile(null);
                         setPreviewUrl('');
                       }}
-                      className="bg-red-600 text-white p-4 rounded-full shadow-2xl transform hover:scale-110 transition-all"
+                      className="bg-red-600 text-white p-4 rounded-full"
                     >
                       <IoClose size={24} />
                     </button>
@@ -365,7 +384,7 @@ export default function AddLessonPage() {
                 </>
               ) : (
                 <div className="text-center p-10">
-                  <div className="w-20 h-20 bg-[#0A0908] rounded-3xl flex items-center justify-center mx-auto mb-6 border border-[#1A1612] group-hover:border-[#E5A93C]/30 group-hover:text-[#E5A93C] transition-all">
+                  <div className="w-20 h-20 bg-[#0A0908] rounded-3xl flex items-center justify-center mx-auto mb-6 border border-[#1A1612] group-hover:text-[#E5A93C]">
                     <MdCloudUpload size={32} />
                   </div>
                   <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">
@@ -388,7 +407,7 @@ export default function AddLessonPage() {
               />
             </div>
 
-            {/* Tag System */}
+            {/* Tags System: User tag add r delete korte parbe */}
             <div className="bg-[#0F0E0C] border border-[#1A1612] p-8 rounded-[32px] shadow-2xl">
               <label className="flex items-center gap-3 text-[10px] font-black uppercase text-gray-500 mb-6 tracking-[0.3em]">
                 <FaTags className="text-[#E5A93C]" /> Wisdom Tags
@@ -405,7 +424,7 @@ export default function AddLessonPage() {
                     >
                       {tag}{' '}
                       <IoClose
-                        className="cursor-pointer hover:text-red-500 transition-colors"
+                        className="cursor-pointer hover:text-red-500"
                         size={14}
                         onClick={() => handleRemoveTag(tag)}
                       />
@@ -421,39 +440,36 @@ export default function AddLessonPage() {
                   onKeyPress={e =>
                     e.key === 'Enter' && (e.preventDefault(), handleAddTag())
                   }
-                  placeholder="New tag..."
-                  className="flex-1 bg-[#0A0908] border border-[#1A1612] px-5 py-4 rounded-xl text-xs outline-none focus:border-[#E5A93C]/30 text-white"
+                  placeholder="Add tag..."
+                  className="flex-1 bg-[#0A0908] border border-[#1A1612] px-5 py-4 rounded-xl text-xs outline-none text-white"
                 />
                 <button
                   type="button"
                   onClick={handleAddTag}
-                  className="bg-[#1A1612] p-4 rounded-xl text-[#E5A93C] hover:bg-[#E5A93C] hover:text-black transition-all shadow-lg"
+                  className="bg-[#1A1612] p-4 rounded-xl text-[#E5A93C] hover:bg-[#E5A93C] hover:text-black"
                 >
                   <IoAdd size={20} />
                 </button>
               </div>
             </div>
 
-            {/* --- ACTION BUTTON SECTION --- */}
+            {/* Submit Button Section: Limit thakle "Archive" button dekhabe naile "Upgrade" link hobe */}
             <div className="space-y-6 pt-4">
               {isLimitReached ? (
                 <Link
                   href="/pricing"
-                  className="w-full h-20 rounded-2xl bg-indigo-600 text-white flex items-center justify-center gap-4 font-black uppercase tracking-[0.3em] text-xs shadow-[0_20px_50px_rgba(79,70,229,0.2)] hover:bg-indigo-500 transition-all border border-indigo-400/30"
+                  className="w-full h-20 rounded-2xl bg-indigo-600 text-white flex items-center justify-center gap-4 font-black uppercase tracking-[0.3em] text-xs shadow-2xl hover:bg-indigo-500"
                 >
-                  <FaCrown className="text-amber-400 text-xl animate-bounce" />
+                  <FaCrown className="text-amber-400 text-xl animate-bounce" />{' '}
                   Upgrade to Expand Archive
                 </Link>
               ) : (
                 <motion.button
-                  whileHover={{
-                    scale: 1.02,
-                    boxShadow: '0 0 40px rgba(229,169,60,0.1)',
-                  }}
+                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={isPublishing}
-                  className="w-full h-20 rounded-2xl bg-[#E5A93C] text-black font-black uppercase tracking-[0.3em] text-xs transition-all shadow-2xl hover:bg-white disabled:opacity-50 flex items-center justify-center gap-3"
+                  className="w-full h-20 rounded-2xl bg-[#E5A93C] text-black font-black uppercase tracking-[0.3em] text-xs shadow-2xl disabled:opacity-50 flex items-center justify-center gap-3"
                 >
                   {isPublishing ? (
                     'Synchronizing...'
@@ -463,17 +479,6 @@ export default function AddLessonPage() {
                     </>
                   )}
                 </motion.button>
-              )}
-
-              {isLimitReached && (
-                <div className="flex items-center gap-3 justify-center p-6 bg-red-500/5 border border-red-500/10 rounded-2xl backdrop-blur-sm">
-                  <MdInfoOutline className="text-red-500 text-xl" />
-                  <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest leading-relaxed">
-                    Archive Capacity (5/5) Exhausted.
-                    <br />
-                    Unlock Unlimited Wisdom slots with Premium.
-                  </p>
-                </div>
               )}
             </div>
           </div>

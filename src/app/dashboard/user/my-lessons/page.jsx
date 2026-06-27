@@ -25,19 +25,22 @@ export default function MyLessonsPage() {
   const user = session?.user;
   const isPremiumUser = user?.plan === 'premium' || false;
 
+  // States: Lessons data r loading handle korar jonno
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal States
+  //  Modal States: Delete korar confirmation box er jonno
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [lessonToDelete, setLessonToDelete] = useState(null);
 
+  // Auth Guard: Login na thakle signin page-e pathay dibe
   useEffect(() => {
     if (!isPending && !session) {
       router.replace('/signin');
     }
   }, [session, isPending, router]);
 
+  // Backend theke user-er nijer sob lesson niye ashar function
   const fetchMyLessons = async () => {
     if (!user?.id) return;
     try {
@@ -55,16 +58,19 @@ export default function MyLessonsPage() {
     fetchMyLessons();
   }, [user?.id]);
 
+  // Delete modal open korar function
   const openDeleteModal = lesson => {
     setLessonToDelete(lesson);
     setIsDeleteModalOpen(true);
   };
 
+  // Delete modal bondho korar function
   const closeDeleteModal = () => {
     setIsDeleteModalOpen(false);
     setLessonToDelete(null);
   };
 
+  //Database theke lesson delete korar main function
   const executeDelete = async () => {
     if (!lessonToDelete) return;
     try {
@@ -84,6 +90,7 @@ export default function MyLessonsPage() {
     }
   };
 
+  // Public ba Private status change korar function
   const handleToggleVisibility = async (id, current) => {
     const next = current === 'Public' ? 'Private' : 'Public';
     try {
@@ -98,6 +105,7 @@ export default function MyLessonsPage() {
     }
   };
 
+  // Free ba Premium access level change korar function
   const handleToggleAccess = async (id, current) => {
     if (!isPremiumUser) {
       toast.error('Premium access required to change access levels');
@@ -116,6 +124,7 @@ export default function MyLessonsPage() {
     }
   };
 
+  //Loading state UI
   if (loading)
     return (
       <div className="min-h-screen bg-[#0F0D0A] flex items-center justify-center text-[#E5A93C] font-mono animate-pulse">
@@ -127,7 +136,7 @@ export default function MyLessonsPage() {
     <div className="min-h-screen bg-[#0F0D0A] text-[#E6DFD3] p-4 md:p-12">
       <Toaster />
 
-      {/* Delete modal */}
+      {/* Delete Modal */}
       <DeleteLessonModal
         isOpen={isDeleteModalOpen}
         onClose={closeDeleteModal}
@@ -136,7 +145,8 @@ export default function MyLessonsPage() {
       />
 
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
+
+        {/* Header: Title r Lesson add korar button */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
             <h1 className="text-3xl md:text-5xl font-serif text-[#E6DFD3]">
@@ -154,7 +164,7 @@ export default function MyLessonsPage() {
           </Link>
         </div>
 
-        {/* mobile design */}
+        {/* Mobile Design: Card layout */}
         <div className="grid grid-cols-1 gap-4 lg:hidden">
           {lessons.map(lesson => (
             <div
@@ -162,39 +172,57 @@ export default function MyLessonsPage() {
               className="bg-[#14110C] border border-[#231E15] rounded-3xl p-6 space-y-6"
             >
               <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                  {/* lesson title */}
-                  <h4 className="font-serif text-lg text-[#F4EFEA] leading-tight">
-                    {lesson.title}
-                  </h4>
-                  {/* category */}
-                  <span className="text-[9px] bg-white/5 px-2 py-0.5 rounded text-[#5C544A] uppercase font-mono inline-block">
-                    {lesson.category}
-                  </span>
-                </div>
+                {/* Image er Title-e click korle detail-e niye jabe */}
+                <Link
+                  href={`/public-lessons/${lesson._id}`}
+                  className="flex gap-4 items-center group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 group-hover:border-[#E5A93C]/30 transition-all">
+                    {lesson.image ? (
+                      <img
+                        src={lesson.image}
+                        className="w-full h-full object-cover"
+                        alt="thumb"
+                      />
+                    ) : (
+                      <FiBookOpen className="text-[#E5A93C]" />
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-serif text-lg text-[#F4EFEA] leading-tight group-hover:text-[#E5A93C] transition-colors">
+                      {lesson.title}
+                    </h4>
+                    <span className="text-[9px] bg-white/5 px-2 py-0.5 rounded text-[#5C544A] uppercase font-mono inline-block">
+                      {lesson.category}
+                    </span>
+                  </div>
+                </Link>
+
+                {/* update and delete button */}
                 <div className="flex gap-2">
                   <Link
                     href={`/dashboard/user/my-lessons/${lesson._id}`}
-                    className="p-2 hover:cursor-pointer bg-white/5 border border-white/5 text-gray-400 rounded-lg"
+                    className="p-2 bg-white/5 border border-white/5 text-gray-400 rounded-lg"
                   >
                     <FiEdit2 size={14} />
                   </Link>
                   <button
                     onClick={() => openDeleteModal(lesson)}
-                    className="p-2 bg-red-500/10 border border-red-500/10 hover:cursor-pointer text-red-500 rounded-lg"
+                    className="p-2 bg-red-500/10 border border-red-500/10 text-red-500 rounded-lg"
                   >
                     <FiTrash2 size={14} />
                   </button>
                 </div>
+
               </div>
 
-              {/* visibility and access button */}
+              {/* Status toggles */}
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() =>
                     handleToggleVisibility(lesson._id, lesson.visibility)
                   }
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border hover:cursor-pointer transition-all ${lesson.visibility === 'Public' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${lesson.visibility === 'Public' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}
                 >
                   {lesson.visibility === 'Public' ? <FiGlobe /> : <FiLock />}{' '}
                   {lesson.visibility}
@@ -203,13 +231,14 @@ export default function MyLessonsPage() {
                   onClick={() =>
                     handleToggleAccess(lesson._id, lesson.accessLevel)
                   }
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border hover:cursor-pointer transition-all ${lesson.accessLevel === 'Premium' ? 'bg-[#E5A93C]/10 text-[#E5A93C] border-[#E5A93C]/20' : 'bg-white/5 text-[#5C544A] border-white/5'}`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${lesson.accessLevel === 'Premium' ? 'bg-[#E5A93C]/10 text-[#E5A93C] border-[#E5A93C]/20' : 'bg-white/5 text-[#5C544A] border-white/5'}`}
                 >
                   {lesson.accessLevel === 'Premium' && <FiStar />}{' '}
                   {lesson.accessLevel}
                 </button>
               </div>
 
+              {/* save and like counts */}
               <div className="flex justify-between items-center pt-4 border-t border-white/5">
                 <div className="flex gap-4 text-[11px] font-mono text-[#5C544A]">
                   <span className="flex items-center gap-1.5">
@@ -232,9 +261,12 @@ export default function MyLessonsPage() {
           ))}
         </div>
 
-        {/* --- DESKTOP TABLE VIEW --- */}
+        {/* --- Desktop View: Table layout --- */}
         <div className="hidden lg:block bg-[#14110C] border border-[#231E15] rounded-3xl overflow-hidden shadow-2xl">
+          {/* desktop table */}
           <table className="w-full text-left">
+
+            {/* desktop table header */}
             <thead>
               <tr className="border-b border-[#231E15] text-[9px] font-black uppercase text-[#5C544A] tracking-widest">
                 <th className="py-6 px-8">Insight</th>
@@ -244,27 +276,44 @@ export default function MyLessonsPage() {
                 <th className="py-6 px-8 text-right">Actions</th>
               </tr>
             </thead>
+
+            {/* desktop table body */}
             <tbody className="divide-y divide-[#231E15]/30">
               {lessons.map(lesson => (
                 <tr
                   key={lesson._id}
                   className="hover:bg-white/[0.01] transition-colors group"
                 >
+                  {/* Insight column: Image r Title link kora hoyeche */}
                   <td className="py-6 px-8">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-white/5 border border-white/10 flex items-center justify-center text-[#E5A93C] rounded-xl group-hover:scale-110 transition-transform">
-                        <FiBookOpen />
+                    <Link
+                      href={`/public-lessons/${lesson._id}`}
+                      className="flex items-center gap-4 group/link"
+                    >
+                      {/* Image handling: Thakhle photo, naile icon */}
+                      <div className="w-12 h-12 bg-white/5 border border-white/10 flex items-center justify-center text-[#E5A93C] rounded-xl overflow-hidden shrink-0 group-hover/link:border-[#E5A93C]/30 transition-all">
+                        {lesson.image ? (
+                          <img
+                            src={lesson.image}
+                            className="w-full h-full object-cover"
+                            alt="lesson"
+                          />
+                        ) : (
+                          <FiBookOpen />
+                        )}
                       </div>
                       <div className="max-w-[250px]">
-                        <h4 className="font-serif text-base text-[#F4EFEA] truncate">
+                        <h4 className="font-serif text-base text-[#F4EFEA] truncate group-hover/link:text-[#E5A93C] transition-colors">
                           {lesson.title}
                         </h4>
                         <span className="text-[9px] text-[#5C544A] uppercase font-mono tracking-wider">
                           {lesson.category}
                         </span>
                       </div>
-                    </div>
+                    </Link>
                   </td>
+
+                  {/* Visibility status */}
                   <td className="py-6 px-6">
                     <button
                       onClick={() =>
@@ -280,6 +329,8 @@ export default function MyLessonsPage() {
                       {lesson.visibility}
                     </button>
                   </td>
+
+                  {/* Access level status */}
                   <td className="py-6 px-6">
                     <button
                       onClick={() =>
@@ -291,6 +342,8 @@ export default function MyLessonsPage() {
                       {lesson.accessLevel}
                     </button>
                   </td>
+
+                  {/* Likes r Saves count */}
                   <td className="py-6 px-6">
                     <div className="flex justify-center items-center gap-6 text-[11px] font-mono text-[#5C544A]">
                       <span className="flex items-center gap-1.5">
@@ -303,14 +356,10 @@ export default function MyLessonsPage() {
                       </span>
                     </div>
                   </td>
+
+                  {/* Actions field edit and delete */}
                   <td className="py-6 px-8 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Link
-                        href={`/public-lessons/${lesson._id}`}
-                        className="p-2.5 bg-white/5 border border-white/10 text-gray-500 hover:text-[#E5A93C] rounded-xl transition-all"
-                      >
-                        <FiEye size={14} />
-                      </Link>
                       <Link
                         href={`/dashboard/user/my-lessons/${lesson._id}`}
                         className="p-2.5 bg-white/5 border border-white/10 text-gray-500 hover:text-blue-400 rounded-xl transition-all"
@@ -331,6 +380,7 @@ export default function MyLessonsPage() {
           </table>
         </div>
 
+        {/* Empty State */}
         {lessons.length === 0 && !loading && (
           <div className="text-center py-20 bg-[#14110C] rounded-3xl border border-dashed border-[#231E15]">
             <FiBookOpen size={40} className="mx-auto text-[#231E15] mb-4" />

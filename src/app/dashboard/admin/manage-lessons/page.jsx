@@ -145,6 +145,7 @@ const ManageLessonsPageByAdmin = () => {
         message={`CRITICAL ACTION: Permanently wipe lesson "${modal.lesson?.title}" from registry?`}
       />
 
+      {/* main div */}
       <div className="max-w-7xl mx-auto">
         <header className="mb-10 border-b border-gray-800 pb-8">
           <h2 className="text-2xl md:text-4xl font-black tracking-tighter text-white uppercase mb-8 flex items-center gap-4">
@@ -212,6 +213,8 @@ const ManageLessonsPageByAdmin = () => {
         {/* Desktop View Table */}
         <div className="hidden lg:block overflow-hidden rounded-2xl border border-white/5 bg-[#111]">
           <table className="w-full text-left border-collapse">
+
+            {/* table headers */}
             <thead className="bg-black/40 text-[9px] uppercase tracking-[3px] text-gray-600 border-b border-gray-800">
               <tr>
                 <th className="px-8 py-5">Lesson Identity</th>
@@ -220,12 +223,15 @@ const ManageLessonsPageByAdmin = () => {
                 <th className="px-8 py-5 text-right">Moderation</th>
               </tr>
             </thead>
+
+            {/* table body */}
             <tbody className="divide-y divide-gray-900">
               {filteredLessons.map(lesson => (
                 <tr
                   key={lesson._id}
                   className="hover:bg-white/[0.01] transition-all group"
                 >
+
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
                       {/* Image Handler with Fallback Icon */}
@@ -268,11 +274,13 @@ const ManageLessonsPageByAdmin = () => {
                       </div>
                     </div>
                   </td>
+
                   <td className="px-6 py-6">
                     <span className="text-[9px] font-black border border-gray-800 px-3 py-1 text-gray-500 uppercase rounded-full">
                       {lesson.category}
                     </span>
                   </td>
+
                   <td className="px-6 py-6">
                     <div className="flex justify-center gap-5 text-sm">
                       <FaEye
@@ -297,6 +305,7 @@ const ManageLessonsPageByAdmin = () => {
                       />
                     </div>
                   </td>
+
                   <td className="px-8 py-6 text-right">
                     <div className="flex items-center justify-end gap-3">
                       <button
@@ -331,6 +340,7 @@ const ManageLessonsPageByAdmin = () => {
                       </button>
                     </div>
                   </td>
+                  
                 </tr>
               ))}
             </tbody>
