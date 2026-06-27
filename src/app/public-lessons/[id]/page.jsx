@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiArrowLeft,
@@ -38,7 +38,6 @@ import {
 
 export default function PublicLessonDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
 
   // State management
@@ -74,11 +73,12 @@ export default function PublicLessonDetailPage() {
   );
 
   // Redirect to signin if not authenticated
-  useEffect(() => {
-    if (!isPending && !session) {
-      router.replace('/signin');
-    }
-  }, [session, isPending, router]);
+  // eitar jonno reusable api er moddhe conflict hoccile jar jonno lesson share korte jhamela hoccilo
+  // useEffect(() => {
+  //   if (!isPending && !session) {
+  //     router.replace('/signin');
+  //   }
+  // }, [session, isPending, router]);
 
   // Fetch lesson details including comments, like and favorite status
   useEffect(() => {

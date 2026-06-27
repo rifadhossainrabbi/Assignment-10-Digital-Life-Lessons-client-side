@@ -21,10 +21,13 @@ const request = async (method, endpoint, body) => {
   // error handling
   if (res.status === 401) {
     if (typeof window !== 'undefined') {
-      const currentPath = window.location.pathname;
-      window.location.href = `/signin?callbackURL=${currentPath}`;
+      const currentPath = window.location.pathname + window.location.search;
+
+      if (window.location.pathname !== '/signin') {
+        window.location.href = `/signin?callbackURL=${encodeURIComponent(currentPath)}`;
+      }
     }
-    return;
+    return null;
   }
 
   if (res.status === 403) {
