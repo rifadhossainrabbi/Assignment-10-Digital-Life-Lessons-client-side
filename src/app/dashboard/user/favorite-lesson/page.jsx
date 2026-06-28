@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/reusableApi';
 import { motion } from 'framer-motion';
 import DeleteConfirmModal from '../../DeleteConfirmModal';
-
+import Link from 'next/link';
 
 export default function UserFavoritePage() {
   const { data: session, isPending: authLoading } = authClient.useSession();
@@ -136,7 +136,7 @@ export default function UserFavoritePage() {
               <select
                 value={selectedCategory}
                 onChange={e => setSelectedCategory(e.target.value)}
-                className="bg-transparent text-[10px] font-mono outline-none text-[#E5A93C] uppercase tracking-widest cursor-pointer"
+                className="bg-black text-[10px] font-mono outline-none text-[#E5A93C] uppercase tracking-widest cursor-pointer"
               >
                 <option value="">All Categories</option>
                 <option value="Personal Growth">Personal Growth</option>
@@ -157,11 +157,13 @@ export default function UserFavoritePage() {
                 className="bg-[#0F0E0C] border border-[#1A1612] rounded-2xl overflow-hidden group shadow-xl"
               >
                 <div className="relative aspect-video overflow-hidden">
-                  <img
-                    src={lesson.image}
-                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
-                    alt="insight"
-                  />
+                  <Link href={`/public-lessons/${lesson._id}`}>
+                    <img
+                      src={lesson.image}
+                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                      alt="insight"
+                    />
+                  </Link>
                 </div>
                 <div className="p-6">
                   <h3 className="text-[#F4EFEA] font-serif text-base line-clamp-1 mb-4">
@@ -172,13 +174,13 @@ export default function UserFavoritePage() {
                       onClick={() =>
                         router.push(`/public-lessons/${lesson._id}`)
                       }
-                      className="text-[#E5A93C] text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 hover:text-white transition-all"
+                      className="text-[#E5A93C] text-[10px] hover:cursor-pointer font-bold uppercase tracking-widest flex items-center gap-1 hover:text-white transition-all"
                     >
                       View <FiEye />
                     </button>
                     <button
                       onClick={() => handleOpenModal(lesson)}
-                      className="text-red-500/40 hover:text-red-500 transition-colors p-2"
+                      className="text-red-500/40 hover:text-red-500 hover:cursor-pointer transition-colors p-2"
                     >
                       <FiTrash2 size={16} />
                     </button>

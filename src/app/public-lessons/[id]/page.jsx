@@ -38,6 +38,7 @@ export default function PublicLessonDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { data: session, isPending } = authClient.useSession();
+  console.log(session, 'session');
 
   // State management
   const [lesson, setLesson] = useState(null);
@@ -186,6 +187,7 @@ export default function PublicLessonDetailPage() {
     };
     fetchDetails();
   }, [params.id, currentUserId, isPending]);
+  console.log(lesson, 'lesson data');
 
   useEffect(() => {
     if (!params?.id) return;
@@ -733,7 +735,7 @@ export default function PublicLessonDetailPage() {
                   <span className="text-white">{readingTime} MINS</span>
                 </div>
                 <div className="flex justify-between items-center mb-4">
-                  <span>STATUS</span>
+                  <span>VISIBILITY</span>
                   <span className="text-[#E5A93C]">{lesson.visibility}</span>
                 </div>
                 <div className="flex justify-between items-center">

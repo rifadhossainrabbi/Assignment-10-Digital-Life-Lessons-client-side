@@ -40,7 +40,7 @@ export default function PublicLessonsPage() {
   const [totalPages, setTotalPages] = useState(1); // Mot koita page ache
   const [totalResults, setTotalResults] = useState(0); // Mot koita lesson ache
 
-  // DATA FETCHING FUNCTION 
+  // DATA FETCHING FUNCTION
   // Database theke data niye ashar main function
   const fetchLessons = async () => {
     try {
@@ -278,6 +278,12 @@ export default function PublicLessonsPage() {
                       >
                         "{lesson.description}"
                       </p>
+                      <div className='flex justify-between'>
+                        <p>CreatedAt:</p>
+                        <p>
+                          {new Date(lesson.createdAt).toDateString('en-GB')}
+                        </p>
+                      </div>
 
                       {/* Footer Info: Author and Button */}
                       <div className="mt-auto pt-6 border-t border-[#1A1612] flex items-center justify-between">

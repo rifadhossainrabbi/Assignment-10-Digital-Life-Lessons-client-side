@@ -79,20 +79,28 @@ const UserProfile = () => {
     : 'Unknown';
 
   const handleUpdateProfile = async () => {
+    if (!name || !photoURL) {
+      return toast.error('Please provide both name and photo URL');
+    }
+
     setIsUpdating(true);
     try {
-      const res = await fetch(`${serverUrl}/admin/profile/update/${user.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, image: photoURL }),
+      const response = await api.patch(`/profile/update/${user.id}`, {
+        name,
+        image: photoURL,
       });
-
-      if (res.ok) {
+      if (response && response.success) {
         toast.success('Profile updated in the archives');
         setIsEditing(false);
-        window.location.reload();
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      } else {
+        toast.error(response?.message || 'Update failed');
       }
     } catch (err) {
+      console.error(err);
       toast.error('Archive sync failed');
     } finally {
       setIsUpdating(false);

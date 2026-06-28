@@ -216,7 +216,11 @@ const Navbar = () => {
                           Dashboard
                         </Link>
                         <Link
-                          href="/dashboard/profile"
+                          href={
+                            userRole === 'admin'
+                              ? '/dashboard/admin/profile'
+                              : '/dashboard/profile'
+                          }
                           onClick={() => setIsDropdownOpen(false)}
                           className="flex items-center px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
                         >
@@ -319,11 +323,15 @@ const Navbar = () => {
                     <LayoutColumns className="mr-4" width={18} /> Dashboard
                   </Link>
                   <Link
-                    href="/dashboard/profile"
-                    onClick={() => setIsMobileDrawerOpen(false)}
-                    className="flex items-center text-sm font-bold uppercase py-4 border-b border-white/5 text-gray-400"
+                    href={
+                      userRole === 'admin'
+                        ? '/dashboard/admin/profile'
+                        : '/dashboard/profile'
+                    }
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
                   >
-                    <Person className="mr-4" width={18} /> Profile
+                    <Person className="mr-3" width={18} /> Profile Settings
                   </Link>
                 </>
               )}

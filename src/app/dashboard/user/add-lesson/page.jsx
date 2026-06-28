@@ -291,50 +291,78 @@ export default function AddLessonPage() {
                 </div>
               </div>
 
-              {/* Access Policy: Premium user k click korle block r toast korar logic eikhane */}
+              {/* Access Policy Section */}
               <div className="p-8 bg-[#0A0908] rounded-3xl border border-[#1A1612] space-y-6">
                 <label className="text-gray-500 text-[10px] uppercase font-black tracking-[0.3em] block">
                   Access Policy
                 </label>
                 <div className="flex flex-wrap gap-10">
-                  {['Free', 'Premium'].map(level => (
-                    <label
-                      key={level}
-                      className={`flex items-center gap-4 cursor-pointer group ${level === 'Premium' && !isPremiumUser ? 'opacity-60' : ''}`}
-                      onClick={() => {
-                        // Jodi free user hoye premium select korte chay
-                        if (level === 'Premium' && !isPremiumUser) {
-                          toast.error(
-                            'Premium archive is for paid members only. Please upgrade!',
-                          );
-                        }
-                      }}
-                    >
-                      <div
-                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${accessLevel === level ? 'border-[#E5A93C] bg-[#E5A93C]/10' : 'border-[#1A1612]'}`}
-                      >
-                        {accessLevel === level && (
-                          <div className="w-2.5 h-2.5 bg-[#E5A93C] rounded-full shadow-[0_0_10px_#E5A93C]" />
+                  {['Free', 'Premium'].map(level => {
+                    const isDisabled = level === 'Premium' && !isPremiumUser;
+
+                    return (
+                      <div key={level} className="relative group">
+                        {/* Tooltip Logic: Sudhu disabled thaklei hover-e tooltip dekhabe */}
+                        {isDisabled && (
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-4 py-2 bg-indigo-600 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-50 shadow-[0_10px_20px_rgba(0,0,0,0.4)] border border-indigo-400/30">
+                            Upgrade to Premium to create paid lessons.
+                            {/* Tooltip-er niche chotto arrow/tri-angle design */}
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-indigo-600"></div>
+                          </div>
                         )}
+
+                        <label
+                          className={`flex items-center gap-4 transition-all ${
+                            isDisabled
+                              ? 'cursor-not-allowed opacity-40'
+                              : 'cursor-pointer group'
+                          }`}
+                          onClick={() => {
+                            if (isDisabled) {
+                              toast.error(
+                                'Upgrade to Premium to unlock this feature!',
+                              );
+                            }
+                          }}
+                        >
+                          {/* Custom Radio Button Design */}
+                          <div
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                              accessLevel === level
+                                ? 'border-[#E5A93C] bg-[#E5A93C]/10'
+                                : 'border-[#1A1612]'
+                            } ${isDisabled ? 'grayscale' : ''}`}
+                          >
+                            {accessLevel === level && (
+                              <div className="w-2.5 h-2.5 bg-[#E5A93C] rounded-full shadow-[0_0_10px_#E5A93C]" />
+                            )}
+                          </div>
+
+                          <input
+                            type="radio"
+                            className="hidden"
+                            disabled={isDisabled}
+                            checked={accessLevel === level}
+                            onChange={() => {
+                              if (!isDisabled) setAccessLevel(level);
+                            }}
+                          />
+
+                          <span
+                            className={`text-xs font-bold uppercase tracking-widest transition-colors ${
+                              accessLevel === level
+                                ? 'text-amber-500'
+                                : 'text-[#5C544A]'
+                            }`}
+                          >
+                            {level === 'Free'
+                              ? 'Public (Free)'
+                              : 'Premium Archive'}
+                          </span>
+                        </label>
                       </div>
-                      <input
-                        type="radio"
-                        className="hidden"
-                        checked={accessLevel === level}
-                        onChange={() => {
-                          // Sudhu premium user ba free option select kora jabe
-                          if (level === 'Free' || isPremiumUser) {
-                            setAccessLevel(level);
-                          }
-                        }}
-                      />
-                      <span
-                        className={`text-xs font-bold uppercase tracking-widest ${accessLevel === level ? 'text-amber-500' : 'text-[#5C544A]'}`}
-                      >
-                        {level === 'Free' ? 'Public (Free)' : 'Premium Archive'}
-                      </span>
-                    </label>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

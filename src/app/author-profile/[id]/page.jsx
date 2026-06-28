@@ -109,7 +109,7 @@ export default function AuthorProfilePage() {
                   )}
                 </span>
                 <span className="text-[9px] uppercase font-mono text-[#5C544A] tracking-[0.2em] mt-1">
-                  Wisdom Points
+                  ALL LiKES
                 </span>
               </div>
             </div>
