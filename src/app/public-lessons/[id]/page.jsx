@@ -74,7 +74,7 @@ export default function PublicLessonDetailPage() {
     });
   };
 
-  // --- 📝 PDF DOWNLOAD LOGIC ---
+  // pdf download logic
   const exportToPDF = async () => {
     if (!lesson) return;
 
