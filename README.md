@@ -3,7 +3,7 @@
 A platform where users create, store, and share meaningful life lessons, personal growth insights, and wisdom gathered over time.
 
 ## 🌐 Live URL
-🔗 [https://digital-life-lessons.vercel.app](https://digital-life-lessons.vercel.app)
+🔗 [https://digital-life-lessons-client-kappa.vercel.app/]
 
 ## 🎯 Purpose
 People often learn valuable lessons but forget them over time. This platform helps preserve personal wisdom, encourages mindful reflection, and allows users to grow by exploring lessons from the community.

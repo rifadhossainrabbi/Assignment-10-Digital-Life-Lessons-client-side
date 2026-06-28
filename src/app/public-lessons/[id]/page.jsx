@@ -15,25 +15,23 @@ import {
   FiSend,
   FiTag,
   FiCopy,
+  FiDownload, // PDF icon er jonno
 } from 'react-icons/fi';
 import { toast, Toaster } from 'react-hot-toast';
 import Link from 'next/link';
 import { authClient } from '@/lib/auth-client';
 import ReportModal from '@/components/ReportModal';
 import { api } from '@/lib/reusableApi';
+import { jsPDF } from 'jspdf'; // Official jspdf import standard follow kora holo
 
-// REQUIREMENT: Professional Social Sharing Components
+// Professional Social Sharing Components
 import {
   FacebookShareButton,
   LinkedinShareButton,
   XShareButton,
-  WhatsappShareButton,
-  EmailShareButton,
   FacebookIcon,
   XIcon,
   LinkedinIcon,
-  WhatsappIcon,
-  EmailIcon,
 } from 'react-share';
 
 export default function PublicLessonDetailPage() {
@@ -57,6 +55,104 @@ export default function PublicLessonDetailPage() {
   const shareUrl = `${process.env.NEXT_PUBLIC_SERVER_URL}/public-lessons/${params.id}`;
 
   const currentUserId = useMemo(() => session?.user?.id || null, [session]);
+
+  // Image URL theke base64 format a convert korar function
+  const loadImageAsBase64 = url => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.setAttribute('crossOrigin', 'anonymous'); // CORS jhamela thik korbe
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/jpeg')); // JPEG format a return korbe
+      };
+      img.onerror = err => reject(err);
+      img.src = url;
+    });
+  };
+
+  // --- 📝 PDF DOWNLOAD LOGIC ---
+  const exportToPDF = async () => {
+    if (!lesson) return;
+
+    // Premium Check: Free user premium wisdom download korte parbe na
+    const isLocked =
+      lesson.accessLevel === 'Premium' && session?.user?.plan !== 'premium';
+    if (isLocked) {
+      toast.error('Please go to Upgrade and buy premium for download!');
+      return;
+    }
+
+    const loadToast = toast.loading('Generating Wisdom PDF with Visuals...');
+
+    try {
+      const doc = new jsPDF(); // official standard instantiation
+
+      // 1. Text styling (Title)
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(24);
+      doc.setTextColor(0, 0, 0); // black color theme
+      doc.text(lesson.title, 20, 25);
+
+      // 2. Image process (Jodi image thake)
+      let currentY = 35;
+      if (lesson.image) {
+        try {
+          const imgData = await loadImageAsBase64(lesson.image);
+          // doc.addImage(imageData, format, x, y, width, height)
+          doc.addImage(imgData, 'JPEG', 20, currentY, 170, 95);
+          currentY += 105; // Image er porer content ektu niche nambe
+        } catch (err) {
+          console.error('Image PDF a add hoite pare nai, skip kora holo.');
+        }
+      }
+
+      // 3. Metadata (Category & Author)
+      doc.setFontSize(11);
+      doc.setTextColor(100, 100, 100);
+      doc.text(
+        `Category: ${lesson.category} | EmotionalTone: ${
+          lesson.emotionalTone
+        } | Contributor: ${lesson.author?.name}`,
+        20,
+        currentY,
+      );
+
+      doc.setDrawColor(229, 169, 60);
+      doc.line(20, currentY + 5, 190, currentY + 5); // Divider line
+
+      // 4. Main Description (Text wrapping)
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(13);
+      doc.setTextColor(40, 40, 40);
+
+      // text ke page er width onujayi wrap korlam
+      const splitText = doc.splitTextToSize(lesson.description, 170);
+      doc.text(splitText, 20, currentY + 15);
+
+      // 5. Footer
+      doc.setFontSize(9);
+      doc.setTextColor(180, 180, 180);
+      doc.text(
+        `Sanctuary: Digital Life Lessons | Date: ${new Date().toLocaleDateString()}`,
+        20,
+        285,
+      );
+
+      // doc.save() diye download trigger hobe
+      // lesson.title.replace(/\s+/g, '_' underscore diya title replace kora hoyse jemon How_To_Be_Successful_Archive.pdf
+      doc.save(`${lesson.title.replace(/\s+/g, '_')}_Archive.pdf`);
+      toast.success('Wisdom archived as PDF!', { id: loadToast });
+    } catch (error) {
+      console.error(error);
+      toast.error('An Error Occured!', {
+        id: loadToast,
+      });
+    }
+  };
 
   const readingTime = useMemo(() => {
     if (!lesson?.description) return 1;
@@ -104,6 +200,7 @@ export default function PublicLessonDetailPage() {
     fetchSimilar();
   }, [params.id]);
 
+  // handle like
   const handleLike = async () => {
     if (!currentUserId) return router.push('/signin');
     try {
@@ -123,6 +220,7 @@ export default function PublicLessonDetailPage() {
     }
   };
 
+  // handel favourite
   const handleFavorite = async () => {
     if (!currentUserId) return toast.error('Please login to save to favorites');
     try {
@@ -143,6 +241,7 @@ export default function PublicLessonDetailPage() {
     }
   };
 
+  // handle comment
   const handlePostComment = async () => {
     if (!newComment.trim()) return;
     try {
@@ -160,6 +259,7 @@ export default function PublicLessonDetailPage() {
     }
   };
 
+  // handle report
   const handleReport = async (selectedReason, details) => {
     if (!session?.user) return toast.error('Please login to report');
 
@@ -205,29 +305,43 @@ export default function PublicLessonDetailPage() {
     >
       <Toaster position="bottom-right" />
       <div className="max-w-7xl mx-auto px-6 pt-12">
-        <div className="flex items-center justify-between mb-12">
+        {/* top header action buttons */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-2 text-[#8C8275] hover:text-[#E5A93C] font-mono text-[10px] uppercase tracking-widest transition-all"
           >
             <FiArrowLeft /> Back to Library
           </button>
-          <div className="flex gap-4">
-            <span className="bg-blue-500/5 text-blue-400 border border-blue-500/20 px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight">
-              {lesson.category}
-            </span>
-            <span className="bg-emerald-500/5 text-emerald-400 border border-emerald-500/20 px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight">
-              {lesson.emotionalTone}
-            </span>
-          </div>
+
+          {/* pdf download button */}
+          <button
+            onClick={exportToPDF}
+            className="bg-[#E5A93C] text-black px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white transition-all shadow-xl shadow-amber-900/10 w-full md:w-auto"
+          >
+            <FiDownload size={16} /> Export as PDF
+          </button>
         </div>
 
+        {/* category and emotional tone */}
+        <div className="flex gap-4 mb-6">
+          <span className="bg-blue-500/5 text-blue-400 border border-blue-500/20 px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight">
+            {lesson.category}
+          </span>
+          <span className="bg-emerald-500/5 text-emerald-400 border border-emerald-500/20 px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight">
+            {lesson.emotionalTone}
+          </span>
+        </div>
+
+        {/* main div */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           <div className="lg:col-span-8 space-y-12">
+            {/* lesson title */}
             <h1 className="text-4xl md:text-6xl font-serif text-white leading-[1.1]">
               {lesson.title}
             </h1>
 
+            {/* lesson image and stats */}
             <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/5">
               <img
                 src={lesson.image}
@@ -236,6 +350,7 @@ export default function PublicLessonDetailPage() {
               />
             </div>
 
+            {/* lesson stats */}
             <div className="grid grid-cols-3 bg-[#0F0E0C] border border-[#1A1612] p-8 rounded-xl shadow-inner group">
               <div className="flex flex-col items-center border-r border-[#1A1612]">
                 <FiHeart
@@ -274,6 +389,7 @@ export default function PublicLessonDetailPage() {
               </div>
             </div>
 
+            {/* lessons actions buttons */}
             <div className="flex flex-wrap items-center justify-between border-y border-[#1A1612] py-8">
               <div className="flex items-center gap-10">
                 <button
@@ -321,6 +437,7 @@ export default function PublicLessonDetailPage() {
                     <span>Share</span>
                   </button>
 
+                  {/* share options */}
                   <AnimatePresence>
                     {showShareOptions && (
                       <motion.div
@@ -384,10 +501,12 @@ export default function PublicLessonDetailPage() {
               </button>
             </div>
 
+            {/* lesson description */}
             <div className="prose prose-invert max-w-none text-xl leading-[1.8] font-serif text-[#BAB0A3] space-y-8 first-letter:text-8xl first-letter:text-white first-letter:mr-4 first-letter:float-left first-letter:leading-none">
               {lesson.description}
             </div>
 
+            {/* lesson comments */}
             <div className="space-y-16 mt-20">
               <h3 className="text-4xl font-serif text-white">
                 Comments ({comments.length})
@@ -449,6 +568,7 @@ export default function PublicLessonDetailPage() {
               </div>
             </div>
 
+            {/* similar lesson */}
             {similarLessons.length > 0 && (
               <div className="mt-24 pt-16 border-t border-[#1A1612]">
                 <div className="mb-10">
@@ -545,6 +665,7 @@ export default function PublicLessonDetailPage() {
             )}
           </div>
 
+          {/* author section  */}
           <aside className="lg:col-span-4 space-y-16">
             <div className="bg-[#0F0E0C] border border-[#1A1612] p-10 rounded-2xl shadow-xl sticky top-28">
               <div className="text-center mb-8">
