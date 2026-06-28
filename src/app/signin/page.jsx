@@ -5,7 +5,7 @@ const LogInPage = () => {
   return (
     <div className="container mx-auto min-h-[80vh] flex justify-center items-center p-4">
       {/* 
-       npm buil fail hoay uesSearchParams er jonno LoginForm name alada component banay suspense diya wrap kora hoyase
+       npm build fail hoay uesSearchParams er jonno LoginForm name alada component banay suspense diya wrap kora hoyase
       */}
       <Suspense
         fallback={

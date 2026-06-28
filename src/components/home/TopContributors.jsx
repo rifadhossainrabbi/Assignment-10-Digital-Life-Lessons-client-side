@@ -12,6 +12,16 @@ const TopContributors = () => {
   const [contributors, setContributors] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // nam er first 2 digit er function
+  const getInitials = name => {
+    if (!name) return '??';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
   useEffect(() => {
     const fetchContributors = async () => {
       try {
@@ -39,7 +49,6 @@ const TopContributors = () => {
   return (
     <section className="w-full py-24 bg-[#0A0908] border-t border-white/5">
       <div className="container mx-auto px-6 md:px-10">
-        {/* Section Header */}
         <header className="mb-16">
           <motion.h2
             initial={{ opacity: 0, y: -20 }}
@@ -51,7 +60,7 @@ const TopContributors = () => {
           </motion.h2>
           <div className="h-1.5 w-16 bg-[#E5A93C] mt-6 rounded-full shadow-[0_0_15px_rgba(229,169,60,0.3)]"></div>
         </header>
-        {/* Contributors Grid */}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {contributors.length > 0 ? (
             contributors.map((person, idx) => (
@@ -68,20 +77,24 @@ const TopContributors = () => {
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#E5A93C]/5 blur-[80px] rounded-full group-hover:bg-[#E5A93C]/10 transition-all duration-700"></div>
 
                 <div className="relative inline-block mb-6">
-                  <div className="w-28 h-28 rounded-full border-2 border-[#1A1612] p-1.5 group-hover:border-[#E5A93C]/50 transition-all duration-500 bg-[#0A0908]">
-                    <Image
-                      width={112}
-                      height={112}
-                      // ইমেজ হ্যান্ডলিং ফিক্স
-                      src={
-                        person?.image && person.image !== ''
-                          ? person.image
-                          : 'https://i.ibb.co.com/vP99Tpx/user.png'
-                      }
-                      alt={person?.name || 'Contributor'}
-                      className="w-full h-full rounded-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
-                    />
+                  {/* image container */}
+                  <div className="w-28 h-28 rounded-full border-2 border-[#1A1612] p-1.5 group-hover:border-[#E5A93C]/50 transition-all duration-500 bg-[#0A0908] flex items-center justify-center overflow-hidden">
+                    {person?.image && person.image !== '' ? (
+                      <Image
+                        width={112}
+                        height={112}
+                        src={person.image}
+                        alt={person?.name || 'Contributor'}
+                        className="w-full h-full rounded-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                      />
+                    ) : (
+                      /* image na thakle nam er first 2 digit */
+                      <span className="text-3xl font-serif text-[#E5A93C] uppercase tracking-tighter">
+                        {getInitials(person?.name)}
+                      </span>
+                    )}
                   </div>
+
                   <div className="absolute -bottom-1 -right-1 bg-[#E5A93C] text-black p-2 rounded-full shadow-lg border-2 border-[#14110C]">
                     <FiAward size={14} />
                   </div>
@@ -108,7 +121,6 @@ const TopContributors = () => {
               </motion.div>
             ))
           ) : (
-            // ডাটা না থাকলে খালি দেখাবে না
             <div className="col-span-full py-10 text-center text-[#5C544A] font-mono text-xs uppercase tracking-widest">
               No Contributor records found in the archive.
             </div>
