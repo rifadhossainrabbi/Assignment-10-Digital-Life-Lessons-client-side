@@ -15,38 +15,53 @@ export default function AuthorProfilePage() {
   const currentUser = session?.user;
 
   // State Management
+  const [author, setAuthor] = useState(null);
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Fetch all lessons created by this specific author
+  // Fetch author profile + lessons
   useEffect(() => {
     if (!params?.id) return;
+
     const fetchAuthorData = async () => {
       try {
         setLoading(true);
-        const data = await api.get(`/lessons/user/${params.id}`);
-        setLessons(data);
+
+        const data = await api.get(`/author-profile/${params.id}`);
+
+        setAuthor(data);
+        setLessons(data.lessons || []);
       } catch (error) {
+        console.error(error);
         toast.error('Failed to establish connection to the archives');
       } finally {
         setLoading(false);
       }
     };
+
     fetchAuthorData();
   }, [params.id]);
 
+  // Authentication check
   useEffect(() => {
     if (!isPending && !session) {
       router.replace('/signin');
     }
   }, [session, isPending, router]);
 
-  // 2. Extract author identity metadata from the first lesson object
-  const authorInfo = useMemo(() => {
-    return lessons.length > 0 ? lessons[0].author : null;
-  }, [lessons]);
+  // Helper to get initials
+  const getInitials = name => {
+    if (!name) return '??';
 
-  // 3. Loading State UI
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+  };
+
+  // Loading UI
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0A0908] flex items-center justify-center font-mono text-[#E5A93C] uppercase tracking-widest">
@@ -54,14 +69,13 @@ export default function AuthorProfilePage() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-[#0A0908] text-[#BAB0A3] p-6 md:p-12 antialiased">
       <div className="max-w-7xl mx-auto">
         {/* Navigation: Return to previous directory */}
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-[#5C544A] hover:text-[#E5A93C] transition-all text-xs font-mono uppercase tracking-widest mb-12"
+          className="flex items-center gap-2 text-[#5C544A] hover:text-[#E5A93C] transition-all text-xs hover:cursor-pointer font-mono uppercase tracking-widest mb-12"
         >
           <FiArrowLeft /> Return to Library
         </button>
@@ -71,21 +85,21 @@ export default function AuthorProfilePage() {
           {/* Subtle design element */}
           <div className="absolute top-0 right-0 w-48 h-48 bg-[#E5A93C]/5 blur-[100px] rounded-full"></div>
 
-          {authorInfo?.image ? (
+          {author?.image ? (
             <img
-              src={authorInfo.image}
+              src={author.image}
               className="w-32 h-32 md:w-44 md:h-44 rounded-full object-cover border-2 border-[#1A1612] grayscale hover:grayscale-0 transition-all duration-700 shadow-2xl z-10"
               alt="Author Identity"
             />
           ) : (
             <div className="w-32 h-32 md:w-44 md:h-44 rounded-full bg-[#1A1612] flex items-center justify-center border-2 border-[#E5A93C]/20 shadow-2xl z-10 text-4xl md:text-6xl font-serif text-[#E5A93C] uppercase">
-              {authorInfo?.name.slice(0, 2)}
+              {getInitials(author?.name)}
             </div>
           )}
 
           <div className="text-center md:text-left flex-1 z-10">
             <h1 className="text-4xl md:text-6xl font-serif text-white mb-2 leading-tight">
-              {authorInfo?.name}
+              {author?.name || 'Unknown Contributor'}
             </h1>
             <p className="text-[#E5A93C] font-mono text-[10px] uppercase tracking-[0.5em] mb-8">
               Verified Insight Contributor
@@ -120,112 +134,122 @@ export default function AuthorProfilePage() {
         <div className="mb-10 flex items-center gap-3">
           <FiBookOpen className="text-[#E5A93C] text-xl" />
           <h2 className="text-xl font-serif text-white uppercase tracking-widest">
-            Published Chronicles
+            Published Lessons
           </h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {lessons.map(lesson => {
-            // 4. STRICT ACCESS CONTROL: Lock if lesson is Premium AND user plan is NOT premium
-            const isLocked =
-              lesson.accessLevel === 'Premium' &&
-              currentUser?.plan !== 'premium';
+          {lessons.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 border border-dashed border-[#1A1612] rounded-3xl bg-[#0F0E0C]">
+              <FiBookOpen className="text-6xl text-[#E5A93C]/40 mb-6" />
 
-            return (
-              <motion.div
-                key={lesson._id}
-                whileHover={{ y: -6 }}
-                className={`bg-[#0F0E0C] border border-[#1A1612] rounded-2xl overflow-hidden flex flex-col h-full group transition-all duration-500 shadow-xl cursor-pointer ${
-                  isLocked
-                    ? 'hover:border-red-900/30'
-                    : 'hover:border-[#E5A93C]/40'
-                }`}
-                // 5. Smart Navigation: Send to pricing if locked, else send to details
-                onClick={() => {
-                  if (isLocked) {
-                    router.push('/pricing');
-                  } else {
-                    router.push(`/public-lessons/${lesson._id}`);
-                  }
-                }}
-              >
-                {/* Visual Asset Section */}
-                <div className="relative h-56 overflow-hidden bg-[#0A0908]">
-                  <img
-                    src={lesson.image || 'https://via.placeholder.com/800x450'}
-                    className={`w-full h-full object-cover transition-transform duration-1000 ${
-                      !isLocked
-                        ? 'group-hover:scale-110 brightness-75'
-                        : 'blur-3xl grayscale opacity-40'
-                    }`}
-                    alt="Lesson Asset"
-                  />
+              <h3 className="text-2xl font-serif text-white mb-2">
+                No Lessons Added Yet
+              </h3>
 
-                  {/* Access Level Badge */}
-                  <div className="absolute top-4 left-4">
-                    <span
-                      className={`text-[9px] font-black uppercase px-2.5 py-1 rounded shadow-lg ${
-                        lesson.accessLevel === 'Premium'
-                          ? 'bg-[#E5A93C] text-black'
-                          : 'bg-white/10 text-white backdrop-blur-md border border-white/10'
+              <p className="text-[#8C8275] font-mono text-xs uppercase tracking-[0.25em] text-center">
+                This contributor hasn't published any lessons yet.
+              </p>
+            </div>
+          ) : (
+            lessons.map(lesson => {
+              const isLocked =
+                lesson.accessLevel === 'Premium' &&
+                currentUser?.plan !== 'premium';
+
+              return (
+                <motion.div
+                  key={lesson._id}
+                  whileHover={{ y: -6 }}
+                  className={`bg-[#0F0E0C] border border-[#1A1612] rounded-2xl overflow-hidden flex flex-col h-full group transition-all duration-500 shadow-xl cursor-pointer ${
+                    isLocked
+                      ? 'hover:border-red-900/30'
+                      : 'hover:border-[#E5A93C]/40'
+                  }`}
+                  onClick={() => {
+                    if (isLocked) {
+                      router.push('/pricing');
+                    } else {
+                      router.push(`/public-lessons/${lesson._id}`);
+                    }
+                  }}
+                >
+                  {/* Visual Asset Section */}
+                  <div className="relative h-56 overflow-hidden bg-[#0A0908]">
+                    <img
+                      src={
+                        lesson.image || 'https://via.placeholder.com/800x450'
+                      }
+                      className={`w-full h-full object-cover transition-transform duration-1000 ${
+                        !isLocked
+                          ? 'group-hover:scale-110 brightness-75'
+                          : 'blur-3xl grayscale opacity-40'
                       }`}
-                    >
-                      {lesson.accessLevel}
-                    </span>
-                  </div>
+                      alt="Lesson Asset"
+                    />
 
-                  {/* Premium Lock Overlay for Free/Guest Users */}
-                  {isLocked && (
-                    <div className="absolute inset-0 bg-[#0A0908]/60 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
-                      <FiLock className="text-[#E5A93C] text-3xl mb-3 animate-bounce" />
-                      <p className="text-white font-serif text-sm font-bold uppercase tracking-widest">
-                        Restricted Entry
-                      </p>
-                      <p className="text-[10px] text-[#E5A93C] mt-1 font-mono uppercase">
-                        Upgrade to Read
-                      </p>
+                    <div className="absolute top-4 left-4">
+                      <span
+                        className={`text-[9px] font-black uppercase px-2.5 py-1 rounded shadow-lg ${
+                          lesson.accessLevel === 'Premium'
+                            ? 'bg-[#E5A93C] text-black'
+                            : 'bg-white/10 text-white backdrop-blur-md border border-white/10'
+                        }`}
+                      >
+                        {lesson.accessLevel}
+                      </span>
                     </div>
-                  )}
-                </div>
 
-                {/* Content Section */}
-                <div className="p-8 flex flex-col flex-grow">
-                  <div className="flex items-center gap-2 text-[10px] font-mono text-[#8C8275] uppercase tracking-[0.25em] mb-4">
-                    <FiTag className="text-[#E5A93C]" /> {lesson.category}
-                  </div>
-
-                  <h3
-                    className={`text-xl font-serif text-white mb-4 line-clamp-2 leading-relaxed transition-colors group-hover:text-[#E5A93C] ${isLocked ? 'opacity-30' : ''}`}
-                  >
-                    {lesson.title}
-                  </h3>
-
-                  <p
-                    className={`text-[#8C8275] text-sm font-serif italic mb-8 line-clamp-3 leading-relaxed flex-grow ${isLocked ? 'opacity-10' : ''}`}
-                  >
-                    "{lesson.description}"
-                  </p>
-
-                  {/* Metadata Footer */}
-                  <div className="mt-auto pt-6 border-t border-[#1A1612] flex items-center justify-between">
-                    <span className="text-[9px] font-mono text-[#5C544A] uppercase tracking-widest">
-                      {new Date(lesson.createdAt).toLocaleDateString()}
-                    </span>
-
-                    {!isLocked ? (
-                      <span className="flex items-center gap-2 text-[10px] font-black text-[#E5A93C] uppercase tracking-[0.2em] group-hover:text-white transition-all">
-                        Read Entry <FiEye />
-                      </span>
-                    ) : (
-                      <span className="text-[9px] font-mono text-red-500 font-bold uppercase tracking-tighter">
-                        Locked Archive
-                      </span>
+                    {isLocked && (
+                      <div className="absolute inset-0 bg-[#0A0908]/60 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+                        <FiLock className="text-[#E5A93C] text-3xl mb-3 animate-bounce" />
+                        <p className="text-white font-serif text-sm font-bold uppercase tracking-widest">
+                          Restricted Entry
+                        </p>
+                        <p className="text-[10px] text-[#E5A93C] mt-1 font-mono uppercase">
+                          Upgrade to Read
+                        </p>
+                      </div>
                     )}
                   </div>
-                </div>
-              </motion.div>
-            );
-          })}
+
+                  <div className="p-8 flex flex-col flex-grow">
+                    <div className="flex items-center gap-2 text-[10px] font-mono text-[#8C8275] uppercase tracking-[0.25em] mb-4">
+                      <FiTag className="text-[#E5A93C]" /> {lesson.category}
+                    </div>
+
+                    <h3
+                      className={`text-xl font-serif text-white mb-4 line-clamp-2 leading-relaxed transition-colors group-hover:text-[#E5A93C] ${isLocked ? 'opacity-30' : ''}`}
+                    >
+                      {lesson.title}
+                    </h3>
+
+                    <p
+                      className={`text-[#8C8275] text-sm font-serif italic mb-8 line-clamp-3 leading-relaxed flex-grow ${isLocked ? 'opacity-10' : ''}`}
+                    >
+                      "{lesson.description}"
+                    </p>
+
+                    <div className="mt-auto pt-6 border-t border-[#1A1612] flex items-center justify-between">
+                      <span className="text-[9px] font-mono text-[#5C544A] uppercase tracking-widest">
+                        {new Date(lesson.createdAt).toLocaleDateString()}
+                      </span>
+
+                      {!isLocked ? (
+                        <span className="flex items-center gap-2 text-[10px] font-black text-[#E5A93C] uppercase tracking-[0.2em] group-hover:text-white transition-all">
+                          Read Entry <FiEye />
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-mono text-red-500 font-bold uppercase tracking-tighter">
+                          Locked Archive
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>

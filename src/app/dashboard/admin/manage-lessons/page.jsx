@@ -90,26 +90,60 @@ const ManageLessonsPageByAdmin = () => {
 
   // Lesson status (Featured/Reviewed) update korar function
   const handleUpdateStatus = async (id, field, currentValue) => {
+    const previousLessons = [...lessons]; // backup rakha hoise
+    setLessons(prev =>
+      prev.map(l => (l._id === id ? { ...l, [field]: !currentValue } : l)),
+    );
+
     try {
+      // backend a data pathano hoilo
       await api.patch(`/admin/lessons/status/${id}`, {
         [field]: !currentValue,
       });
-      fetchLessons();
-      toast.success(`${field.replace('is', '')} status updated`);
+
+      setStats(prev => ({
+        ...prev,
+        featuredCount:
+          field === 'isFeatured'
+            ? !currentValue
+              ? prev.featuredCount + 1
+              : prev.featuredCount - 1
+            : prev.featuredCount,
+      }));
+
+      toast.success(`${field.replace('is', '')} updated`);
     } catch (err) {
-      toast.error(err.message || 'Registry update failed');
+      // error hoile ager state a fire jawa
+      setLessons(previousLessons);
+      toast.error(err.message || 'Update failed');
     }
   };
 
   // Lesson delete korar function
   const handleDeleteLesson = async () => {
     const { lesson } = modal;
+    // local state theke sathe sathe change
+    setLessons(prev => prev.filter(l => l._id !== lesson._id));
+
     try {
       await api.delete(`/admin/lessons/${lesson._id}`);
-      fetchLessons();
-      toast.success('Record purged successfully');
+      toast.success('Record purged');
+      // statas update
+      setStats(prev => ({
+        ...prev,
+        total: prev.total - 1,
+        publicCount:
+          lesson.visibility === 'Public'
+            ? prev.publicCount - 1
+            : prev.publicCount,
+        privateCount:
+          lesson.visibility === 'Private'
+            ? prev.privateCount - 1
+            : prev.privateCount,
+      }));
     } catch (err) {
-      toast.error(err.message || 'Purge failed');
+      fetchLessons(); // error hole sob data niya ashbe
+      toast.error('Purge failed');
     }
     setModal({ isOpen: false, lesson: null });
   };
