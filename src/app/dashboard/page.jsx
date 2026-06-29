@@ -14,6 +14,7 @@ import {
 import { authClient } from '@/lib/auth-client';
 import DashboardChart from '@/components/Dashboard/DashboardChart';
 import { api } from '@/lib/reusableApi';
+import Link from 'next/link';
 
 export default function UserDashboardHome() {
   const router = useRouter();
@@ -42,24 +43,18 @@ export default function UserDashboardHome() {
     const fetchDashboardData = async () => {
       try {
         // Fetching data from your existing backend routes
-        const [lessonsRes, favoritesRes] = await Promise.all([
-          api.get(`/lessons/user/${userId}`),
+        const [authorRes, favoritesRes] = await Promise.all([
+          api.get(`/author-profile/${userId}`),
           api.get(`/favorites/${userId}`),
         ]);
 
-        // Calculate total likes accumulated from all lessons
-        const accumulatedLikes = lessonsRes.reduce(
-          (acc, curr) => acc + (curr.likesCount || 0),
-          0,
-        );
- 
         setStats({
-          totalCreated: lessonsRes.length,
+          totalCreated: authorRes.totalLessons || 0,
           totalSaved: favoritesRes.length,
-          totalLikes: accumulatedLikes,
+          totalLikes: authorRes.totalLikes || 0,
         });
 
-        setUserLessons(lessonsRes);
+        setUserLessons(authorRes.lessons || []);
       } catch (err) {
         console.error('Dashboard Data Fetch Error:', err);
       } finally {
@@ -93,7 +88,7 @@ export default function UserDashboardHome() {
 
         <button
           onClick={() => router.push('/dashboard/user/add-lesson')}
-          className="group flex items-center gap-2 bg-[#E5A93C] text-black px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#F4EFEA] transition-all shadow-xl shadow-amber-900/10"
+          className="group flex items-center hover:cursor-pointer gap-2 bg-[#E5A93C] text-black px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#F4EFEA] transition-all shadow-xl shadow-amber-900/10"
         >
           <FiPlus className="group-hover:rotate-90 transition-transform" /> New
           Life Lesson
@@ -166,17 +161,19 @@ export default function UserDashboardHome() {
 
             <button
               onClick={() => router.push('/dashboard/user/my-lessons')}
-              className="w-full mt-8 flex items-center justify-center gap-2 text-[10px] font-bold text-[#8C8275] hover:text-[#E5A93C] transition-all py-3 border border-white/5 rounded-xl hover:bg-white/5"
+              className="w-full hover:cursor-pointer mt-8 flex items-center justify-center gap-2 text-[10px] font-bold text-[#8C8275] hover:text-[#E5A93C] transition-all py-3 border border-white/5 rounded-xl hover:bg-white/5"
             >
               Explore Full Archive <FiArrowRight />
             </button>
           </div>
 
           {/* Quick Shortcuts */}
-          <div className="bg-[#0F0E0C] border border-[#1A1612] p-4 rounded-2xl grid grid-cols-2 gap-2">
-            <ShortcutLink label="Profile" href="/dashboard/profile" />
-            <ShortcutLink label="Settings" href="/dashboard/settings" />
-          </div>
+          <Link
+            href="/dashboard/profile"
+            className="w-full hover:cursor-pointer mt-8 flex items-center justify-center gap-2 font-bold text-[#8C8275] hover:text-[#E5A93C] transition-all py-3 border border-white/5 rounded-xl hover:bg-white/5"
+          >
+            Profile
+          </Link>
         </div>
       </div>
     </div>

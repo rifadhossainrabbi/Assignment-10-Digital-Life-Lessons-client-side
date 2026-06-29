@@ -155,7 +155,7 @@ const Navbar = () => {
                     e.stopPropagation(); // Prevents Navbar onClick from firing
                     setIsDropdownOpen(!isDropdownOpen);
                   }}
-                  className="flex items-center space-x-2 group focus:outline-none"
+                  className="flex hover:cursor-pointer items-center space-x-2 group focus:outline-none"
                 >
                   <div
                     className={`w-10 h-10 rounded-full border-2 p-[2px] transition-all duration-300 ${isDropdownOpen ? 'border-[#d4af37]' : 'border-white/10'} flex items-center justify-center overflow-hidden`}
@@ -175,7 +175,7 @@ const Navbar = () => {
                     )}
                   </div>
                   <ChevronDown
-                    className={`text-[#d4af37] transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                    className={`text-[#d4af37] transition-transform hover:cursor-pointer duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
                     width={16}
                   />
                 </button>
@@ -231,7 +231,7 @@ const Navbar = () => {
                       <div className="p-2 border-t border-white/5 bg-black/20">
                         <button
                           onClick={handleLogout}
-                          className="w-full flex items-center px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 rounded-xl transition-colors font-bold"
+                          className="w-full flex items-center px-4 py-3 text-sm text-red-500 hover:cursor-pointer hover:bg-red-500/10 rounded-xl transition-colors font-bold"
                         >
                           <ArrowRightFromSquare className="mr-3" width={18} />{' '}
                           Sign Out
@@ -246,7 +246,7 @@ const Navbar = () => {
             {/* Mobile Toggle */}
             <button
               onClick={() => setIsMobileDrawerOpen(true)}
-              className="lg:hidden text-[#d4af37] p-2"
+              className="lg:hidden hover:cursor-pointer text-[#d4af37] p-2"
             >
               <Bars width={28} />
             </button>
@@ -271,7 +271,7 @@ const Navbar = () => {
             </span>
             <button
               onClick={() => setIsMobileDrawerOpen(false)}
-              className="text-gray-400 hover:text-white"
+              className="text-gray-400 hover:cursor-pointer hover:text-white"
             >
               <Xmark width={30} />
             </button>
@@ -349,7 +349,7 @@ const Navbar = () => {
             ) : (
               <button
                 onClick={handleLogout}
-                className="w-full flex justify-center items-center bg-red-500/10 text-red-500 py-4 rounded-lg font-bold uppercase text-xs"
+                className="w-full hover:cursor-pointer flex justify-center items-center bg-red-500/10 text-red-500 py-4 rounded-lg font-bold uppercase text-xs"
               >
                 <ArrowRightFromSquare className="mr-3" width={18} /> Sign Out
               </button>

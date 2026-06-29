@@ -48,13 +48,13 @@ const ConfirmationModal = ({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 text-[10px] font-black uppercase border border-[#231E15] hover:bg-[#231E15] text-[#F4EFEA] rounded-xl transition-all"
+            className="flex-1 hover:cursor-pointer py-3 text-[10px] font-black uppercase border border-[#231E15] hover:bg-[#231E15] text-[#F4EFEA] rounded-xl transition-all"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className={`flex-1 py-3 text-[10px] font-black uppercase ${type === 'delete' ? 'bg-red-600' : 'bg-green-600'} text-white rounded-xl transition-all shadow-lg`}
+            className={`flex-1 hover:cursor-pointer py-3 text-[10px] font-black uppercase ${type === 'delete' ? 'bg-red-600' : 'bg-green-600'} text-white rounded-xl transition-all shadow-lg`}
           >
             Confirm
           </button>
@@ -253,7 +253,7 @@ const ReportedLessonsPage = () => {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => setSelectedReport(group)}
-                          className="p-2 bg-white/5 text-gray-400 hover:text-[#E5A93C] rounded-lg transition-all"
+                          className="p-2 bg-white/5 text-gray-400 hover:text-[#E5A93C] hover:cursor-pointer rounded-lg transition-all"
                         >
                           <FiEye size={14} />
                         </button>
@@ -266,7 +266,7 @@ const ReportedLessonsPage = () => {
                               data: group,
                             })
                           }
-                          className="p-2 bg-green-500/10 text-green-400 rounded-lg disabled:opacity-30"
+                          className="p-2 bg-green-500/10 text-green-400 rounded-lg disabled:opacity-30 hover:cursor-pointer"
                         >
                           {/* Requirement 10: Spinner logic inside button */}
                           {actionLoading === group._id ? (
@@ -284,7 +284,7 @@ const ReportedLessonsPage = () => {
                               data: group,
                             })
                           }
-                          className="p-2 bg-red-500/10 text-red-500 rounded-lg disabled:opacity-30"
+                          className="p-2 bg-red-500/10 text-red-500 rounded-lg disabled:opacity-30 hover:cursor-pointer"
                         >
                           {actionLoading === group._id ? (
                             <span className="animate-spin block h-3 w-3 border-2 border-red-500 border-t-transparent rounded-full"></span>
@@ -403,7 +403,7 @@ const ReportedLessonsPage = () => {
 
               <button
                 onClick={() => setSelectedReport(null)}
-                className="w-full mt-8 py-4 bg-[#E5A93C] text-black font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-white transition-all shadow-xl"
+                className="w-full mt-8 py-4 bg-[#E5A93C] text-black font-black hover:cursor-pointer text-[10px] uppercase tracking-widest rounded-xl hover:bg-white transition-all shadow-xl"
               >
                 Close Investigation
               </button>

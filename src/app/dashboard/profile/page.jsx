@@ -37,13 +37,12 @@ const UserProfile = () => {
       // 2. Optimized Fetching using api.get
       const fetchUserData = async () => {
         try {
-          // Fetching lessons and favorites
-          const [lessonsData, favoritesData] = await Promise.all([
-            api.get(`/lessons/user/${user.id}`),
+          const [profileResponse, favoritesData] = await Promise.all([
+            api.get(`/author-profile/${user.id}`), 
             api.get(`/favorites/${user.id}`),
           ]);
 
-          setUserLessons(lessonsData);
+          setUserLessons(profileResponse.lessons || []);
           setFavCount(favoritesData.length);
         } catch (error) {
           toast.error(error.message || 'Could not load your archive');
@@ -166,7 +165,7 @@ const UserProfile = () => {
                     <button
                       onClick={handleUpdateProfile}
                       disabled={isUpdating}
-                      className="bg-[#E5A93C] text-black px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-white transition-all"
+                      className="bg-[#E5A93C] text-black px-6 py-2 rounded-lg hover:cursor-pointer text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-white transition-all"
                     >
                       {isUpdating ? (
                         <FiLoader className="animate-spin" />
@@ -177,7 +176,7 @@ const UserProfile = () => {
                     </button>
                     <button
                       onClick={() => setIsEditing(false)}
-                      className="bg-transparent border border-[#231E15] text-[#5C544A] px-6 py-2 rounded-lg text-xs font-bold uppercase hover:text-white transition-all"
+                      className="bg-transparent border border-[#231E15] hover:cursor-pointer text-[#5C544A] px-6 py-2 rounded-lg text-xs font-bold uppercase hover:text-white transition-all"
                     >
                       Cancel
                     </button>
@@ -200,7 +199,7 @@ const UserProfile = () => {
                   </p>
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="mt-6 flex items-center gap-2 text-[#E5A93C] hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"
+                    className="mt-6 flex items-center gap-2 hover:cursor-pointer text-[#E5A93C] hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"
                   >
                     <FiEdit3 /> Edit Archive Identity
                   </button>

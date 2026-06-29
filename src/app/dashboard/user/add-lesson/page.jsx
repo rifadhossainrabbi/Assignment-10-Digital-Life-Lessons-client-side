@@ -39,19 +39,21 @@ export default function AddLessonPage() {
     !isPremiumUser && myLessonCount >= freeLimit && user?.role !== 'admin';
 
   // User-er koto gulo lesson archive-e ache ta fetch korar hook
-  useEffect(() => {
-    if (user?.id) {
-      const getCount = async () => {
-        try {
-          const data = await api.get(`/lessons/user/${user.id}`);
-          setMyLessonCount(data.length);
-        } catch (err) {
-          console.error('Archive Sync Error:', err.message);
-        }
-      };
-      getCount();
-    }
-  }, [user?.id]);
+useEffect(() => {
+  if (user?.id) {
+    const getCount = async () => {
+      try {
+        const data = await api.get(`/author-profile/${user.id}`);
+
+        setMyLessonCount(data.totalLessons);
+      } catch (err) {
+        console.error('Archive Sync Error:', err.message);
+      }
+    };
+
+    getCount();
+  }
+}, [user?.id]);
 
   // Login na thakle sign-in page-e redirect korar hook 
   useEffect(() => {

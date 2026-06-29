@@ -311,7 +311,7 @@ export default function PublicLessonDetailPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-[#8C8275] hover:text-[#E5A93C] font-mono text-[10px] uppercase tracking-widest transition-all"
+            className="flex hover:cursor-pointer items-center gap-2 text-[#8C8275] hover:text-[#E5A93C] font-mono text-[10px] uppercase tracking-widest transition-all"
           >
             <FiArrowLeft /> Back to Library
           </button>
@@ -319,7 +319,7 @@ export default function PublicLessonDetailPage() {
           {/* pdf download button */}
           <button
             onClick={exportToPDF}
-            className="bg-[#E5A93C] text-black px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white transition-all shadow-xl shadow-amber-900/10 w-full md:w-auto"
+            className="bg-[#E5A93C] hover:cursor-pointer text-black px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white transition-all shadow-xl shadow-amber-900/10 w-full md:w-auto"
           >
             <FiDownload size={16} /> Export as PDF
           </button>
@@ -396,7 +396,7 @@ export default function PublicLessonDetailPage() {
               <div className="flex items-center gap-10">
                 <button
                   onClick={handleLike}
-                  className="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] transition-all hover:text-white group"
+                  className="flex hover:cursor-pointer items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] transition-all hover:text-white group"
                 >
                   <FiHeart
                     className={
@@ -410,7 +410,7 @@ export default function PublicLessonDetailPage() {
                 </button>
                 <button
                   onClick={handleFavorite}
-                  className="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] transition-all hover:text-white group"
+                  className="flex items-center hover:cursor-pointer gap-3 text-xs font-mono uppercase tracking-[0.2em] transition-all hover:text-white group"
                 >
                   <FiBookmark
                     className={
@@ -426,7 +426,7 @@ export default function PublicLessonDetailPage() {
                 <div className="relative">
                   <button
                     onClick={() => setShowShareOptions(!showShareOptions)}
-                    className="flex items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] hover:text-white transition-all group"
+                    className="flex hover:cursor-pointer items-center gap-3 text-xs font-mono uppercase tracking-[0.2em] hover:text-white transition-all group"
                   >
                     <FiShare2
                       size={20}
@@ -485,7 +485,7 @@ export default function PublicLessonDetailPage() {
                             toast.success('Archive URL copied');
                             setShowShareOptions(false);
                           }}
-                          className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#BAB0A3] hover:text-[#E5A93C] hover:bg-white/10 transition-all"
+                          className="w-10 h-10 rounded-full hover:cursor-pointer bg-white/5 border border-white/10 flex items-center justify-center text-[#BAB0A3] hover:text-[#E5A93C] hover:bg-white/10 transition-all"
                           title="Copy Link"
                         >
                           <FiCopy size={18} />
@@ -497,7 +497,7 @@ export default function PublicLessonDetailPage() {
               </div>
               <button
                 onClick={() => setShowReportModal(true)}
-                className="flex items-center gap-2 px-4 py-2 border border-red-500/30 rounded-lg text-[10px] font-mono text-red-500 bg-red-500/5 hover:bg-red-500/20 transition-all uppercase tracking-[0.3em]"
+                className="flex items-center gap-2 px-4 py-2 border hover:cursor-pointer border-red-500/30 rounded-lg text-[10px] font-mono text-red-500 bg-red-500/5 hover:bg-red-500/20 transition-all uppercase tracking-[0.3em]"
               >
                 <FiAlertTriangle /> Report
               </button>
@@ -527,7 +527,7 @@ export default function PublicLessonDetailPage() {
                     />
                     <button
                       onClick={handlePostComment}
-                      className="bg-blue-600 text-white px-10 py-4 uppercase text-[10px] font-bold tracking-[0.2em] hover:bg-blue-700 flex items-center gap-3 transition-all"
+                      className="bg-blue-600 text-white px-10 py-4 hover:cursor-pointer uppercase text-[10px] font-bold tracking-[0.2em] hover:bg-blue-700 flex items-center gap-3 transition-all"
                     >
                       <FiSend /> Post Comment
                     </button>

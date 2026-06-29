@@ -67,7 +67,7 @@ const ReportModal = ({
               <button
                 key={r.id}
                 onClick={() => setReason(r.id)}
-                className={`w-full flex items-center p-3 text-[10px] font-mono border transition-all uppercase tracking-[0.1em] rounded-lg ${
+                className={`w-full flex items-center p-3 text-[10px] font-mono border hover:cursor-pointer transition-all uppercase tracking-[0.1em] rounded-lg ${
                   reason === r.id
                     ? 'border-red-500 text-red-500 bg-red-500/5'
                     : 'border-[#1A1612] text-[#5C544A] hover:text-white'
@@ -95,13 +95,13 @@ const ReportModal = ({
         <div className="flex gap-4">
           <button
             onClick={onClose}
-            className="flex-1 py-4 text-[10px] font-mono border border-[#1A1612] text-[#8C8275] uppercase rounded-lg"
+            className="flex-1 py-4 text-[10px] font-mono border hover:cursor-pointer border-[#1A1612] text-[#8C8275] uppercase rounded-lg"
           >
             Discard
           </button>
           <button
             onClick={handleReportSubmit}
-            className="flex-1 py-4 text-[10px] font-mono bg-red-600 text-white font-bold uppercase rounded-lg"
+            className="flex-1 py-4 text-[10px] hover:cursor-pointer font-mono bg-red-600 text-white font-bold uppercase rounded-lg"
           >
             Submit Report
           </button>

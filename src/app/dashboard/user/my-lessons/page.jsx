@@ -42,18 +42,22 @@ export default function MyLessonsPage() {
   }, [session, isPending, router]);
 
   // Archive theke nijer lesson fetch korar function
-  const fetchMyLessons = async () => {
-    if (!user?.id) return;
-    try {
-      setLoading(true);
-      const data = await api.get(`/lessons/user/${user.id}`);
-      setLessons(data);
-    } catch (error) {
-      toast.error(error.message || 'Could not sync with archives');
-    } finally {
-      setLoading(false);
-    }
-  };
+ const fetchMyLessons = async () => {
+   if (!user?.id) return;
+
+   try {
+     setLoading(true);
+
+     const data = await api.get(`/author-profile/${user.id}`);
+
+     // author-profile object return kore, lessons array ta state e rakho
+     setLessons(data.lessons || []);
+   } catch (error) {
+     toast.error(error.message || 'Could not sync with archives');
+   } finally {
+     setLoading(false);
+   }
+ };
 
   useEffect(() => {
     fetchMyLessons();
